@@ -8,78 +8,62 @@ namespace Entry
 {
     class Program
     {
+        public const int CommonPort = 9000;
+        public const int ChatPort = 9001;
         static void Main(string[] args)
         {
-            // ** user entity **
-            // * as creator *
-            // create group
-            // listen to requests to join the group
-            // confirm access request
-            // deny access request
-            // destroy group
-            // notify participants that group is destroyed
-            // * as participant *
-            // send message to other participants
-            // receive message from other participants
-            // leave group
-
-            // * utils *
-            // choose username
-            // finish session (close app)
-            // release resources
-
-
-            // ** additional stones under the water **
-
-            // behaviour of leaving depends on whether participant is creator or not
-            // if creator leaves then send notifications to participants and destroy group
-            // if participant leaves then notify other participants and disconnect
             if (args.Length != 0)
             {
                 if (args[0] == "-r")
                 {
-                    SendRequest();
+                    SendRequest("hymeck", ChatId);
                 }
                 
                 else if (args[0] == "-c")
                 {
-                    CreateChat();
+                    CreateChat(ChatId);
                 }
+                
                 else
-                    Console.WriteLine("-c - create chat\n-r - request to chat");
+                    PrintSettings();
             }
+            
             else
-                Console.WriteLine("-c - create chat\n-r - request to chat");
+                PrintSettings();
         }
 
+        private static void PrintSettings() => Console.WriteLine("-c - create chat\n-r - request to chat");
+        
         public static Guid GenerateChatId() => Guid.NewGuid();
 
-        private static readonly Guid ChatId = GenerateChatId();
+        private static readonly Guid ChatId = Guid.Parse("6cf41f02-ad5f-4828-bc09-078b1de9509e");
         
-        public static void CreateChat(int port = 9000)
+        public static void CreateChat(Guid chatId, int port = CommonPort)
         {
             var chatListener = new UdpClient(port);
             IPEndPoint requestIp = null;
+            Console.WriteLine($"=== Chat '{chatId}' is created ===\nWaiting for connections.");
             try
             {
                 while (true)
                 {
                     var requestData = chatListener.Receive(ref requestIp);
-                    var parsedRequestData = Encoding.UTF8.GetString(requestData);
+                    var request = requestData.Deserialize<GroupAccessRequest>();
+                    
                     // todo: confirm or deny
-                    Console.WriteLine($"Request data: {parsedRequestData}");
-
-                    var response = Encoding.UTF8.GetBytes($"Welcome. Chat id: '{ChatId}'.\n" +
-                                                          $"Your port: {requestIp.Port}");
-
-                    chatListener.Send(response, response.Length, requestIp);
-                    break;
+                    
+                    Console.WriteLine($"{request.Username} requested to access group '{chatId}'");
+                    
+                    var response = new GroupAccessResponse { Result = GroupAccessResult.Allow};
+                    
+                    var serializedResponse = response.Serialize();
+                    chatListener.Send(serializedResponse, serializedResponse.Length, requestIp);
                 }
             }
 
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
             }
             
             finally
@@ -88,25 +72,30 @@ namespace Entry
             }
         }
 
-        public static void SendRequest(int remotePort = 9000)
+        public static void SendRequest(string username, Guid chatId, int port = CommonPort)
         {
             var localhostIp = IPAddress.Loopback;
             var requestListener = new UdpClient();
             try
             {
-                string username = "hymeck";
-                var requestData = Encoding.UTF8.GetBytes(username);
-                var remoteHost = new IPEndPoint(localhostIp, remotePort);
-                requestListener.Send(requestData, requestData.Length, localhostIp.ToString(), remotePort);
+                var requestData = new GroupAccessRequest(chatId.ToString(), username).Serialize();
+                var remoteHost = new IPEndPoint(localhostIp, port);
+                requestListener.Send(requestData, requestData.Length, localhostIp.ToString(), port);
 
-                var response = requestListener.Receive(ref remoteHost);
-                var parsedResponse = Encoding.UTF8.GetString(response);
-                Console.WriteLine($"Response: {parsedResponse}");
+
+                // var receiveThread = new Thread(_ =>
+                // {
+                    var response = requestListener.Receive(ref remoteHost);
+                    var parsedResponse = response.Deserialize<GroupAccessResponse>();
+                    Console.WriteLine($"Response: {parsedResponse}");
+                // });
+                
+                // receiveThread.Start();
             }
 
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
             }
             
             finally
