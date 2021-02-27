@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
 namespace Entry
@@ -33,12 +32,10 @@ namespace Entry
         }
 
         private static void PrintSettings() => Console.WriteLine("-c - create chat\n-r - request to chat");
-        
-        public static Guid GenerateChatId() => Guid.NewGuid();
 
-        private static readonly Guid ChatId = Guid.Parse("6cf41f02-ad5f-4828-bc09-078b1de9509e");
+        private static readonly string ChatId = "Just be the man.";
         
-        public static void CreateChat(Guid chatId, int port = CommonPort)
+        public static void CreateChat(string chatId, int port = CommonPort)
         {
             var chatListener = new UdpClient(port);
             IPEndPoint requestIp = null;
@@ -72,25 +69,25 @@ namespace Entry
             }
         }
 
-        public static void SendRequest(string username, Guid chatId, int port = CommonPort)
+        public static void SendRequest(string username, string chatId, int port = CommonPort)
         {
             var localhostIp = IPAddress.Loopback;
-            var requestListener = new UdpClient();
+            var requestListener = new UdpClient(port);
             try
             {
-                var requestData = new GroupAccessRequest(chatId.ToString(), username).Serialize();
+                var requestData = new GroupAccessRequest(chatId, username).Serialize();
                 var remoteHost = new IPEndPoint(localhostIp, port);
                 requestListener.Send(requestData, requestData.Length, localhostIp.ToString(), port);
 
 
-                // var receiveThread = new Thread(_ =>
-                // {
+                var receiveThread = new Thread(_ =>
+                {
                     var response = requestListener.Receive(ref remoteHost);
                     var parsedResponse = response.Deserialize<GroupAccessResponse>();
                     Console.WriteLine($"Response: {parsedResponse}");
-                // });
+                });
                 
-                // receiveThread.Start();
+                receiveThread.Start();
             }
 
             catch (Exception e)
