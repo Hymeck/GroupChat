@@ -9,6 +9,10 @@ namespace Entry
     {
         public const int CommonPort = 9000;
         public const int ChatPort = 9001;
+        
+        // todo: double ports just for localhost. remove this shit later
+        public const int CommonPort2 = 9002;
+        public const int ChatPort2 = 9003;
         static void Main(string[] args)
         {
             if (args.Length != 0)
@@ -33,28 +37,27 @@ namespace Entry
 
         private static void PrintSettings() => Console.WriteLine("-c - create chat\n-r - request to chat");
 
-        private static readonly string ChatId = "Just be the man.";
+        private static readonly string ChatId = "hymeck group";
         
-        public static void CreateChat(string chatId, int port = CommonPort)
+        public static void CreateChat(string chatId)
         {
-            var chatListener = new UdpClient(port);
-            IPEndPoint requestIp = null;
-            Console.WriteLine($"=== Chat '{chatId}' is created ===\nWaiting for connections.");
+            var listener = new UdpClient(CommonPort2);
+            IPEndPoint remoteEndpoint = null;
+            Console.WriteLine($"=== Chat '{chatId}' is created ===");
             try
             {
                 while (true)
                 {
-                    var requestData = chatListener.Receive(ref requestIp);
+                    var requestData = listener.Receive(ref remoteEndpoint);
                     var request = requestData.Deserialize<GroupAccessRequest>();
-                    
-                    // todo: confirm or deny
-                    
+
                     Console.WriteLine($"{request.Username} requested to access group '{chatId}'");
-                    
+                    // todo: confirm or deny
+
                     var response = new GroupAccessResponse { Result = GroupAccessResult.Allow};
                     
                     var serializedResponse = response.Serialize();
-                    chatListener.Send(serializedResponse, serializedResponse.Length, requestIp);
+                    listener.Send(serializedResponse, serializedResponse.Length, remoteEndpoint);
                 }
             }
 
@@ -65,29 +68,31 @@ namespace Entry
             
             finally
             {
-                chatListener.Close();
+                listener.Close();
             }
         }
 
-        public static void SendRequest(string username, string chatId, int port = CommonPort)
+        public static void SendRequest(string username, string chatId)
         {
-            var localhostIp = IPAddress.Loopback;
-            var requestListener = new UdpClient(port);
+            var ip = IPAddress.Loopback;
+            var requestListener = new UdpClient(CommonPort);
             try
             {
                 var requestData = new GroupAccessRequest(chatId, username).Serialize();
-                var remoteHost = new IPEndPoint(localhostIp, port);
-                requestListener.Send(requestData, requestData.Length, localhostIp.ToString(), port);
+                requestListener.Send(requestData, requestData.Length, ip.ToString(), CommonPort2);
 
-
-                var receiveThread = new Thread(_ =>
-                {
-                    var response = requestListener.Receive(ref remoteHost);
+                IPEndPoint remoteEndpoint = null;
+                // var receiveThread = new Thread(_ =>
+                // {
+                    var response = requestListener.Receive(ref remoteEndpoint);
+                    if (response.Length == 0)
+                        return;
+                    
                     var parsedResponse = response.Deserialize<GroupAccessResponse>();
                     Console.WriteLine($"Response: {parsedResponse}");
-                });
-                
-                receiveThread.Start();
+                // });
+                //
+                // receiveThread.Start();
             }
 
             catch (Exception e)
