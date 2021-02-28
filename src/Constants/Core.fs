@@ -20,6 +20,6 @@ module IpAddresses =
     /// <summary>
     /// Multicast IPv4 address used for network participants for multicast data exchanging.
     /// </summary>
-    let NetworkMulticastIp4Address = IPAddress.Parse "224.0.0.0"
+    let NetworkMulticastIpAddress = IPAddress.Parse "224.0.0.0"
     
     
