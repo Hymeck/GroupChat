@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -28,6 +29,9 @@ namespace Entry
                     CreateChat(ChatId);
                 }
                 
+                else if (args[0] == "host")
+                    PrintHostData();
+                
                 else if (args.Length == 2)
                 {
                     StartChatMessaging(args[0], args[1]);
@@ -41,10 +45,20 @@ namespace Entry
                 PrintSettings();
         }
 
+        private static void PrintHostData()
+        {
+            var hostname = Dns.GetHostName();
+            Console.WriteLine($"Hostname: {hostname}");
+            var hostEntry = Dns.GetHostEntry(hostname);
+            Console.WriteLine("Address list:");
+            Console.WriteLine(string.Join('\n', hostEntry.AddressList.AsEnumerable()));
+        }
+        
         private static bool _stop;
         private static void StartChatMessaging(string username, string chatId)
         {
             Console.TreatControlCAsInput = false; // otherwise the system will handle CTRL+C for us
+            // occurs when user input <ctrl>+<C>
             Console.CancelKeyPress += OnCancelKeyPress;
             
             var chat = new ChatMulticastUdpClient(MulticastIpAddress, ChatPort);
@@ -66,8 +80,8 @@ namespace Entry
             chat.SendMulticast(new Message(username, chatId, "Bye-bye", DateTime.Now).Serialize());
             chat.Close();
         }
-
-        // occurs when user input <ctrl>+<C>
+        
+        // handle ctrl+c
         private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
             // set the Cancel property to true to prevent the process from terminating.

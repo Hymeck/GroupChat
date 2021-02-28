@@ -3,6 +3,8 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
+<!--        todo: uncoment it in the end-->
+        <!--<RootNamespace>GroupChat.Client.Console</RootNamespace>-->
     </PropertyGroup>
 
 </Project>
