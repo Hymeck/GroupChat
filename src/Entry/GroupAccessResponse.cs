@@ -8,6 +8,8 @@ namespace Entry
         {
         }
 
+        public bool IsAllowed() => Result.IsAllowed();
+        
         public override string ToString() => $"{Result.ToString()}";
     }
 }

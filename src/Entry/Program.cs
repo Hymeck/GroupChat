@@ -9,10 +9,11 @@ namespace Entry
     {
         public const int CommonPort = 9000;
         public const int ChatPort = 9001;
+        private static readonly IPAddress MulticastIpAddress = IPAddress.Parse("230.0.0.1");
         
-        // todo: double ports just for localhost. remove this shit later
-        public const int CommonPort2 = 9002;
-        public const int ChatPort2 = 9003;
+        // todo: double ports just for localhost. remove this later
+        // public const int CommonPort2 = 9002;
+        // public const int ChatPort2 = 9003;
         static void Main(string[] args)
         {
             if (args.Length != 0)
@@ -27,6 +28,11 @@ namespace Entry
                     CreateChat(ChatId);
                 }
                 
+                else if (args.Length == 2)
+                {
+                    StartChatMessaging(args[0], args[1]);
+                }
+                
                 else
                     PrintSettings();
             }
@@ -35,13 +41,100 @@ namespace Entry
                 PrintSettings();
         }
 
-        private static void PrintSettings() => Console.WriteLine("-c - create chat\n-r - request to chat");
+        private static bool _stop;
+        private static void StartChatMessaging(string username, string chatId)
+        {
+            Console.TreatControlCAsInput = false; // otherwise the system will handle CTRL+C for us
+            Console.CancelKeyPress += OnCancelKeyPress;
+            
+            var chat = new ChatMulticastUdpClient(MulticastIpAddress, ChatPort);
+            chat.DatagramReceived += OnDatagramReceived;
+            chat.BeginReceive();
+            
+            Console.WriteLine($"== Chat '{chatId}' ==");
+            while (true)
+            {
+                var text = Console.ReadLine();
+                
+                if (_stop)
+                    break;
+                
+                var message = new Message(username, chatId, text, DateTime.Now);
+                chat.SendMulticast(message.Serialize());
+            }
+            
+            chat.SendMulticast(new Message(username, chatId, "Bye-bye", DateTime.Now).Serialize());
+            chat.Close();
+        }
+
+        // occurs when user input <ctrl>+<C>
+        private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        {
+            // set the Cancel property to true to prevent the process from terminating.
+            try
+            {
+                Console.WriteLine("Bye.");
+            }
+            catch
+            {
+                // ignored
+            }
+
+            _stop = false;
+        }
+
+        private static void OnDatagramReceived(object sender, DatagramReceivedEventArgs e)
+        {
+            var message = e.Datagram.Deserialize<Message>();
+            Console.WriteLine(message);
+        }
+
+        private static void PrintSettings() => Console.WriteLine("-c - create chat\n" +
+                                                                 "-r - request to chat\n" +
+                                                                 "username chatId");
 
         private static readonly string ChatId = "hymeck group";
+
+        // todo: remember to set BeginReceive callback
+        private static UdpClient GetUdpClient(IPEndPoint localEndpoint)
+        {
+            var udpClient = new UdpClient {ExclusiveAddressUse = false};
+
+            udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            udpClient.ExclusiveAddressUse = false;
+
+            udpClient.Client.Bind(localEndpoint);
+            
+            return udpClient;
+        }
+        
+        private static UdpClient GetUdpClient(IPEndPoint localEndpoint, IPAddress multicastIp)
+        {
+            var udpClient = GetUdpClient(localEndpoint);
+            udpClient.JoinMulticastGroup(multicastIp, localEndpoint.Address);
+            return udpClient;
+        }
+        
+        private static IPAddress GetLocalIpAddress()
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    return ip;
+            
+            throw 
+                new Exception("No network adapters with an IPv4 address in the system!");
+        }
+
+        private static readonly IPAddress LocalIpAddress = GetLocalIpAddress();
         
         public static void CreateChat(string chatId)
         {
-            var listener = new UdpClient(CommonPort2);
+            // var listener = new UdpClient(CommonPort2, AddressFamily.InterNetwork);
+            // var localEndpoint = new IPEndPoint(LocalIpAddress, CommonPort);
+            var localEndpoint = new IPEndPoint(IPAddress.Any, CommonPort);
+            var listener = GetUdpClient(localEndpoint);
+            // var chatListener = GetUdpClient(localEndpoint, MulticastIpAddress);
             IPEndPoint remoteEndpoint = null;
             Console.WriteLine($"=== Chat '{chatId}' is created ===");
             try
@@ -55,6 +148,10 @@ namespace Entry
                     // todo: confirm or deny
 
                     var response = new GroupAccessResponse { Result = GroupAccessResult.Allow};
+                    if (response.IsAllowed())
+                    {
+                        // todo: if confirm send multicast message to group participants
+                    }
                     
                     var serializedResponse = response.Serialize();
                     listener.Send(serializedResponse, serializedResponse.Length, remoteEndpoint);
@@ -74,14 +171,21 @@ namespace Entry
 
         public static void SendRequest(string username, string chatId)
         {
-            var ip = IPAddress.Loopback;
-            var requestListener = new UdpClient(CommonPort);
+            // var ip = IPAddress.Loopback;
+            var localEndpoint = new IPEndPoint(LocalIpAddress, CommonPort);
+            // var requestListener = new UdpClient(CommonPort, AddressFamily.InterNetwork);
+            var requestListener = GetUdpClient(localEndpoint);
+            // var requestListener = new UdpClient();
+            // requestListener.Client.Bind(new IPEndPoint(IPAddress.Any, CommonPort));
             try
             {
-                var requestData = new GroupAccessRequest(chatId, username).Serialize();
-                requestListener.Send(requestData, requestData.Length, ip.ToString(), CommonPort2);
+                var request = new GroupAccessRequest(chatId, username);
+                var requestData = request.Serialize();
+                // requestListener.Send(requestData, requestData.Length, ip.ToString(), CommonPort2);
+                // requestListener.Send(requestData, requestData.Length, localEndpoint);
+                requestListener.Send(requestData, requestData.Length);
 
-                IPEndPoint remoteEndpoint = null;
+                var remoteEndpoint = new IPEndPoint(0, 0);
                 // var receiveThread = new Thread(_ =>
                 // {
                     var response = requestListener.Receive(ref remoteEndpoint);
