@@ -1,6 +1,6 @@
 using System;
 
-namespace Entry
+namespace GroupChat.Client.Console
 {
     /// <summary>
     /// Represents data request to join a group.

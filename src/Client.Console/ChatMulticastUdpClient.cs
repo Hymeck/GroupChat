@@ -2,7 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Entry
+namespace GroupChat.Client.Console
 {
     /// <summary>
     /// Adapts <see cref="UdpClient"/> to support multicast messaging.

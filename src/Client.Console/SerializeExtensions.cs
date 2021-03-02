@@ -3,7 +3,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace Entry
+namespace GroupChat.Client.Console
 {
     public static class SerializeExtensions
     {

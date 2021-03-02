@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Entry
+namespace GroupChat.Client.Console
 {
     class Program
     {
@@ -48,27 +48,27 @@ namespace Entry
         private static void PrintHostData()
         {
             var hostname = Dns.GetHostName();
-            Console.WriteLine($"Hostname: {hostname}");
+            System.Console.WriteLine($"Hostname: {hostname}");
             var hostEntry = Dns.GetHostEntry(hostname);
-            Console.WriteLine("Address list:");
-            Console.WriteLine(string.Join('\n', hostEntry.AddressList.AsEnumerable()));
+            System.Console.WriteLine("Address list:");
+            System.Console.WriteLine(string.Join('\n', hostEntry.AddressList.AsEnumerable()));
         }
         
         private static bool _stop;
         private static void StartChatMessaging(string username, string chatId)
         {
-            Console.TreatControlCAsInput = false; // otherwise the system will handle CTRL+C for us
+            System.Console.TreatControlCAsInput = false; // otherwise the system will handle CTRL+C for us
             // occurs when user input <ctrl>+<C>
-            Console.CancelKeyPress += OnCancelKeyPress;
+            System.Console.CancelKeyPress += OnCancelKeyPress;
             
             var chat = new ChatMulticastUdpClient(MulticastIpAddress, ChatPort);
             chat.DatagramReceived += OnDatagramReceived;
             chat.BeginReceive();
             
-            Console.WriteLine($"== Chat '{chatId}' ==");
+            System.Console.WriteLine($"== Chat '{chatId}' ==");
             while (true)
             {
-                var text = Console.ReadLine();
+                var text = System.Console.ReadLine();
                 
                 if (_stop)
                     break;
@@ -87,7 +87,7 @@ namespace Entry
             // set the Cancel property to true to prevent the process from terminating.
             try
             {
-                Console.WriteLine("Bye.");
+                System.Console.WriteLine("Bye.");
             }
             catch
             {
@@ -100,12 +100,12 @@ namespace Entry
         private static void OnDatagramReceived(object sender, DatagramReceivedEventArgs e)
         {
             var message = e.Datagram.Deserialize<Message>();
-            Console.WriteLine(message);
+            System.Console.WriteLine(message);
         }
 
-        private static void PrintSettings() => Console.WriteLine("-c - create chat\n" +
-                                                                 "-r - request to chat\n" +
-                                                                 "username chatId");
+        private static void PrintSettings() => System.Console.WriteLine("-c - create chat\n" +
+                                                                        "-r - request to chat\n" +
+                                                                        "username chatId");
 
         private static readonly string ChatId = "hymeck group";
 
@@ -150,7 +150,7 @@ namespace Entry
             var listener = GetUdpClient(localEndpoint);
             // var chatListener = GetUdpClient(localEndpoint, MulticastIpAddress);
             IPEndPoint remoteEndpoint = null;
-            Console.WriteLine($"=== Chat '{chatId}' is created ===");
+            System.Console.WriteLine($"=== Chat '{chatId}' is created ===");
             try
             {
                 while (true)
@@ -158,7 +158,7 @@ namespace Entry
                     var requestData = listener.Receive(ref remoteEndpoint);
                     var request = requestData.Deserialize<GroupAccessRequest>();
 
-                    Console.WriteLine($"{request.Username} requested to access group '{chatId}'");
+                    System.Console.WriteLine($"{request.Username} requested to access group '{chatId}'");
                     // todo: confirm or deny
 
                     var response = new GroupAccessResponse { Result = GroupAccessResult.Allow};
@@ -174,7 +174,7 @@ namespace Entry
 
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                System.Console.WriteLine(e.Message);
             }
             
             finally
@@ -207,7 +207,7 @@ namespace Entry
                         return;
                     
                     var parsedResponse = response.Deserialize<GroupAccessResponse>();
-                    Console.WriteLine($"Response: {parsedResponse}");
+                    System.Console.WriteLine($"Response: {parsedResponse}");
                 // });
                 //
                 // receiveThread.Start();
@@ -215,7 +215,7 @@ namespace Entry
 
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                System.Console.WriteLine(e.Message);
             }
             
             finally

@@ -1,19 +1,19 @@
 using System;
 
-namespace Entry
+namespace GroupChat.Client.Console
 {
     public class Message
     {
         public string Username { get; init; }
         public string ChatId { get; init; }
         public string Text { get; init; }
-        public DateTimeOffset SentAt { get; init; }
+        public DateTime SentAt { get; init; }
 
         public Message()
         {
         }
 
-        public Message(string username, string chatId, string text, DateTimeOffset sentAt)
+        public Message(string username, string chatId, string text, DateTime sentAt)
         {
             Username = username;
             ChatId = chatId;

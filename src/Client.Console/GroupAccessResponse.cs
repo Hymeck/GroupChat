@@ -1,4 +1,4 @@
-namespace Entry
+namespace GroupChat.Client.Console
 {
     public class GroupAccessResponse
     {

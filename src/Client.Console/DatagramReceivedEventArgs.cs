@@ -1,6 +1,6 @@
 using System;
 
-namespace Entry
+namespace GroupChat.Client.Console
 {
     public class DatagramReceivedEventArgs : EventArgs
     {

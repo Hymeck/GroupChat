@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>GroupChat.Implementations</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Constants\Constants.fsproj" />
+      <ProjectReference Include="..\Domain\Domain.fsproj" />
+      <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
+    </ItemGroup>
+
+</Project>
