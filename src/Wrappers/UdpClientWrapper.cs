@@ -1,52 +1,55 @@
+﻿#nullable enable
 using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Shared.Wrappers
 {
     /// <summary>
-    /// Adapts <see cref="UdpClient"/> to support multicast messaging.
+    /// Wraps <see cref="UdpClient"/> to send and receive datagrams.
     /// </summary>
-    public class ChatMulticastUdpClient
+    public abstract class UdpClientWrapper
     {
+        #region fields
+        
         /// <summary>
         /// Holds multicast endpoint which contains multicast IP address and port.
         /// </summary>
-        private readonly IPEndPoint _remoteEndpoint;
+        protected readonly IPEndPoint _remoteEndpoint;
 
         /// <summary>
         /// Used to send and receive UDP datagrams.
         /// </summary>
-        private readonly UdpClient _client;
-
+        public readonly UdpClient _client;
+        
         /// <summary>
         /// Indicates whether listening of receiving data has begun or not.
         /// </summary>
-        private bool _beginReceived;
+        protected bool _beginReceived;
+        
+        #endregion fields
+
+        #region constructor
 
         /// <summary>
-        /// Initializes a new instance of <see cref="ChatMulticastUdpClient"/> class with specified <paramref name="multicastIpAddress"/>, <paramref name="port"/> and <paramref name="localIpAddress"/>.
+        /// Initializes a new instance of <see cref="UdpClientWrapper"/> class with specified <paramref name="remoteIpAddress"/>, <paramref name="port"/> and <paramref name="localIpAddress"/>.
         /// <remarks>If you don't know your real local IP address pass <paramref name="localIpAddress"/> as null.</remarks> 
         /// </summary>
-        /// <param name="multicastIpAddress">The multicast IP address.</param>
+        /// <param name="remoteIpAddress">The multicast IP address.</param>
         /// <param name="port">The port.</param>
         /// <param name="localIpAddress">The local IP address.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is less than 0 or greater than 65535.</exception>
-        /// <exception cref="ArgumentNullException"><paramref name="multicastIpAddress"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="multicastIpAddress"/> is not a multicast IP address.</exception>
-        public ChatMulticastUdpClient(IPAddress multicastIpAddress, int port, IPAddress localIpAddress = null)
+        /// <exception cref="ArgumentNullException"><paramref name="remoteIpAddress"/> is null.</exception>
+        protected UdpClientWrapper(IPAddress remoteIpAddress, int port, IPAddress localIpAddress = null)
         {
             if (port < ushort.MinValue || port > ushort.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(port));
 
-            if (multicastIpAddress == null)
-                throw new ArgumentNullException(nameof(multicastIpAddress));
+            if (remoteIpAddress == null)
+                throw new ArgumentNullException(nameof(remoteIpAddress));
 
-            if (!IsMulticastIpAddress(multicastIpAddress))
-                throw new ArgumentException("specified IP address is not a multicast IP address.", nameof(multicastIpAddress));
-            
             var localIp = localIpAddress ?? IPAddress.Any;
-            _remoteEndpoint = new IPEndPoint(multicastIpAddress, port);
+            _remoteEndpoint = new IPEndPoint(remoteIpAddress, port);
 
             _client = new UdpClient();
             // allow multiple clients in the same PC
@@ -56,16 +59,17 @@ namespace GroupChat.Client.Console
             // bind socket with local endpoint
             var localEndpoint = new IPEndPoint(localIp, port);
             _client.Client.Bind(localEndpoint);
-            
-            // join to multicast ip address
-            _client.JoinMulticastGroup(multicastIpAddress);
         }
 
+        #endregion constructor
+        
+        #region public methods
+
         /// <summary>
-        /// Setups <see cref="ChatMulticastUdpClient"/> instance to receive data.
+        /// Setups instance to receive data.
         /// <remarks>Call it once.</remarks>
         /// </summary>
-        public void BeginReceive()
+        public virtual void BeginReceive()
         {
             if (_beginReceived)
                 return;
@@ -80,7 +84,7 @@ namespace GroupChat.Client.Console
         /// </summary>
         /// <param name="data">/the data to be sent.</param>
         /// <exception cref="ArgumentNullException"><paramref name="data"/> is null.</exception>
-        public void SendMulticast(byte[] data)
+        public virtual void Send(byte[] data)
         {
             if (data == null || data.Length == 0)
                 throw new ArgumentNullException(nameof(data), "Sent data is null or empty.");
@@ -88,16 +92,22 @@ namespace GroupChat.Client.Console
             CallUdpClientBeginSend(data);
         }
 
-        // todo: add message to send?
         /// <summary>
-        /// Leaves multicast group, closes udp client.
+        /// Closes udp client.
         /// </summary>
-        public void Close()
+        public virtual void Close()
         {
-            _client.DropMulticastGroup(_remoteEndpoint.Address);
-            // todo: send message that i've left?
             _client.Close();
         }
+        
+        #endregion public methods
+
+        #region private methods
+
+        /// <summary>
+        /// Invokes datagram receiving.
+        /// </summary>
+        private void CallUdpClientBeginReceive() => _client.BeginReceive(ReceivedCallback, state: null);
 
         /// <summary>
         /// Invokes when datagram received.
@@ -114,12 +124,7 @@ namespace GroupChat.Client.Console
             CallUdpClientBeginReceive();
         }
 
-        // call BeginReceive of udp client
-        /// <summary>
-        /// Invokes datagram receiving.
-        /// </summary>
-        private void CallUdpClientBeginReceive() => _client.BeginReceive(ReceivedCallback, state: null);
-        
+
         /// <summary>
         /// Invokes when datagram sent.
         /// </summary>
@@ -136,30 +141,11 @@ namespace GroupChat.Client.Console
         /// <param name="datagram">datagram to send.</param>
         private void CallUdpClientBeginSend(byte[] datagram) =>
             _client.BeginSend(datagram, datagram.Length, _remoteEndpoint, SentCallback, state: null);
-
-        /// <summary>
-        /// Determines whether specified IP address belongs to multicast IP address range.
-        /// </summary>
-        /// <param name="ipAddress">IP address.</param>
-        /// <returns>true if specified IP address belongs to multicast IP address range; otherwise, false.</returns>
-        private static bool IsMulticastIpAddress(IPAddress ipAddress)
-        {
-            // 224.0.0.0 - 239.255.255.255
-            // 224.0.  0.  0   = 11100000.00000000.00000000.00000000 
-            // 239.255.255.255 = 11101111.11111111.11111111.11111111
-            // 4 high bits in first octet always equal to 0b1110
-            
-            // get high octet
-            var firstOctet = ipAddress.GetAddressBytes()[0];
-            
-            // get high 4 bits
-            var fourHighBitsValue = (byte) (firstOctet >> 4);
-            
-            return fourHighBitsValue == 0b1110;
-        }
+        
+        #endregion private methods
         
         /// <summary>
-        /// Event occuring when datagram is received.
+        /// Event occuring when datagram received.
         /// </summary>
         public event EventHandler<DatagramReceivedEventArgs> DatagramReceived;
     }

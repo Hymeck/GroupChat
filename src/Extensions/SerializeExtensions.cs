@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Extensions
 {
     public static class SerializeExtensions
     {
@@ -16,6 +16,7 @@ namespace GroupChat.Client.Console
             using var memStream = new MemoryStream();
             using var xmlWriter = XmlWriter.Create(memStream);
             serializer.Serialize(xmlWriter, source);
+            
             return memStream.ToArray();
         }
 
@@ -31,6 +32,7 @@ namespace GroupChat.Client.Console
 
             using var memStream = new MemoryStream(sourceBytes);
             using var xmlReader = XmlReader.Create(memStream);
+            
             return serializer.Deserialize(xmlReader) as TClass;
         }
     }

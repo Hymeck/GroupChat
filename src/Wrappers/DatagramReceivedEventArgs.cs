@@ -1,4 +1,4 @@
-namespace GroupChat.Implementations.EventArgs
+namespace GroupChat.Shared.Wrappers
 {
     public class DatagramReceivedEventArgs : System.EventArgs
     {

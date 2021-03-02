@@ -6,4 +6,9 @@
         <RootNamespace>GroupChat.Client.Console</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Implementations\Implementations.csproj" />
+      <ProjectReference Include="..\Wrappers\Wrappers.csproj" />
+    </ItemGroup>
+
 </Project>
