@@ -1,12 +1,11 @@
-﻿#nullable enable
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 
 namespace GroupChat.Shared.Wrappers
 {
     /// <summary>
-    /// Wraps <see cref="UdpClient"/> to send and receive datagrams.
+    /// Configures <see cref="UdpClient"/> to send and receive datagrams.
     /// </summary>
     public abstract class UdpClientWrapper
     {
@@ -14,6 +13,7 @@ namespace GroupChat.Shared.Wrappers
         
         /// <summary>
         /// Holds multicast endpoint which contains multicast IP address and port.
+        /// <remarks>Also it may be configured as multicast, broadcast, etc. </remarks>
         /// </summary>
         protected readonly IPEndPoint _remoteEndpoint;
 

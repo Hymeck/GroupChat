@@ -2,26 +2,21 @@
 
 open System.Net
 
-module Requests =
+type GroupExistRequest = { ChatId: string }
 
-    type GroupExistRequest = { ChatId: string }
+type IpAddressReservedRequest = { MulticastIpAddress: IPAddress }
 
-    type IpAddressReservedRequest = { MulticastIpAddress: IPAddress }
+type GroupAccessRequest = { Username: string; ChatId: string }
 
-    type GroupAccessRequest = { Username: string; ChatId: string }
+type Result =
+    | Undefined
+    | No
+    | Yes
 
+type GroupExistResponse = { Exist: Result }
 
-module Responses =
+type IpAddressReservedResponse = { Reserved: Result }
 
-    type Result =
-        | Undefined
-        | No
-        | Yes
-
-    type GroupExistResponse = { Exist: Result }
-
-    type IpAddressReservedResponse = { Reserved: Result }
-
-    type GroupAccessResponse =
-        { Access: Result
-          ChatEndpoint: Option<IPEndPoint> }
+type GroupAccessResponse =
+    { Access: Result
+      ChatEndpoint: Option<IPEndPoint> }

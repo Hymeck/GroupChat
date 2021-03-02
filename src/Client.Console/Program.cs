@@ -46,10 +46,10 @@ namespace GroupChat.Client.Console
                     break;
                 
                 var message = new Message(username, text, DateTime.Now);
-                chat.Send(message.Serialize());
+                chat.Send(message.XmlSerialize());
             }
             
-            chat.Send(new Message(username, "Bye-bye", DateTime.Now).Serialize());
+            chat.Send(new Message(username, "Bye-bye", DateTime.Now).XmlSerialize());
             chat.Close();
         }
         
@@ -71,7 +71,7 @@ namespace GroupChat.Client.Console
 
         private static void OnDatagramReceived(object sender, DatagramReceivedEventArgs e)
         {
-            var message = e.Datagram.Deserialize<Message>();
+            var message = e.Datagram.XmlDeserialize<Message>();
             System.Console.WriteLine(message);
         }
 
