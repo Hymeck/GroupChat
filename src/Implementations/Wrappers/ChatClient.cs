@@ -1,13 +1,14 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using GroupChat.Implementations.EventArgs;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Implementations.Wrappers
 {
     /// <summary>
     /// Adapts <see cref="UdpClient"/> to support multicast messaging.
     /// </summary>
-    public class ChatMulticastUdpClient
+    public class ChatClient
     {
         /// <summary>
         /// Holds multicast endpoint which contains multicast IP address and port.
@@ -25,7 +26,7 @@ namespace GroupChat.Client.Console
         private bool _beginReceived;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="ChatMulticastUdpClient"/> class with specified <paramref name="multicastIpAddress"/>, <paramref name="port"/> and <paramref name="localIpAddress"/>.
+        /// Initializes a new instance of <see cref="ChatClient"/> class with specified <paramref name="multicastIpAddress"/>, <paramref name="port"/> and <paramref name="localIpAddress"/>.
         /// <remarks>If you don't know your real local IP address pass <paramref name="localIpAddress"/> as null.</remarks> 
         /// </summary>
         /// <param name="multicastIpAddress">The multicast IP address.</param>
@@ -34,7 +35,7 @@ namespace GroupChat.Client.Console
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is less than 0 or greater than 65535.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="multicastIpAddress"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="multicastIpAddress"/> is not a multicast IP address.</exception>
-        public ChatMulticastUdpClient(IPAddress multicastIpAddress, int port, IPAddress localIpAddress = null)
+        public ChatClient(IPAddress multicastIpAddress, int port, IPAddress localIpAddress = null)
         {
             if (port < ushort.MinValue || port > ushort.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(port));
@@ -62,7 +63,7 @@ namespace GroupChat.Client.Console
         }
 
         /// <summary>
-        /// Setups <see cref="ChatMulticastUdpClient"/> instance to receive data.
+        /// Setups <see cref="ChatClient"/> instance to receive data.
         /// <remarks>Call it once.</remarks>
         /// </summary>
         public void BeginReceive()
@@ -144,10 +145,7 @@ namespace GroupChat.Client.Console
         /// <returns>true if specified IP address belongs to multicast IP address range; otherwise, false.</returns>
         private static bool IsMulticastIpAddress(IPAddress ipAddress)
         {
-            // 224.0.0.0 - 239.255.255.255
-            // 224.0.  0.  0   = 11100000.00000000.00000000.00000000 
-            // 239.255.255.255 = 11101111.11111111.11111111.11111111
-            // 4 high bits in first octet always equal to 0b1110
+            // 4 high bits in first octet of multicast IP address always equal to 1110
             
             // get high octet
             var firstOctet = ipAddress.GetAddressBytes()[0];
