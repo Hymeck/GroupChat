@@ -12,10 +12,9 @@ namespace GroupChat.Shared.Wrappers
         #region fields
         
         /// <summary>
-        /// Holds multicast endpoint which contains multicast IP address and port.
-        /// <remarks>Also it may be configured as multicast, broadcast, etc. </remarks>
+        /// Holds destination endpoint.
         /// </summary>
-        protected readonly IPEndPoint _remoteEndpoint;
+        protected readonly IPEndPoint _destinationEndpoint;
 
         /// <summary>
         /// Used to send and receive UDP datagrams.
@@ -32,24 +31,24 @@ namespace GroupChat.Shared.Wrappers
         #region constructor
 
         /// <summary>
-        /// Initializes a new instance of <see cref="UdpClientWrapper"/> class with specified <paramref name="remoteIpAddress"/>, <paramref name="port"/> and <paramref name="localIpAddress"/>.
+        /// Initializes a new instance of <see cref="UdpClientWrapper"/> class with specified <paramref name="destinationIpAddress"/>, <paramref name="port"/> and <paramref name="localIpAddress"/>.
         /// <remarks>If you don't know your real local IP address pass <paramref name="localIpAddress"/> as null.</remarks> 
         /// </summary>
-        /// <param name="remoteIpAddress">The multicast IP address.</param>
-        /// <param name="port">The port.</param>
-        /// <param name="localIpAddress">The local IP address.</param>
+        /// <param name="destinationIpAddress">A destination IP address.</param>
+        /// <param name="port">The port used to send and receive datagrams.</param>
+        /// <param name="localIpAddress">A local IP address.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is less than 0 or greater than 65535.</exception>
-        /// <exception cref="ArgumentNullException"><paramref name="remoteIpAddress"/> is null.</exception>
-        protected UdpClientWrapper(IPAddress remoteIpAddress, int port, IPAddress localIpAddress = null)
+        /// <exception cref="ArgumentNullException"><paramref name="destinationIpAddress"/> is null.</exception>
+        protected UdpClientWrapper(IPAddress destinationIpAddress, int port, IPAddress localIpAddress = null)
         {
             if (port < ushort.MinValue || port > ushort.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(port));
 
-            if (remoteIpAddress == null)
-                throw new ArgumentNullException(nameof(remoteIpAddress));
+            if (destinationIpAddress == null)
+                throw new ArgumentNullException(nameof(destinationIpAddress));
 
             var localIp = localIpAddress ?? IPAddress.Any;
-            _remoteEndpoint = new IPEndPoint(remoteIpAddress, port);
+            _destinationEndpoint = new IPEndPoint(destinationIpAddress, port);
 
             Client = new UdpClient();
             // allow multiple clients in the same PC
@@ -79,25 +78,25 @@ namespace GroupChat.Shared.Wrappers
             CallUdpClientBeginReceive();
         }
         
-        /// Calls <see cref="Send(byte[], IPEndPoint)"/> with <see cref="IPEndPoint"/> specified by remote IP address.
+        /// Calls <see cref="Send(byte[], IPEndPoint)"/> with <see cref="IPEndPoint"/> specified by destination IP address.
         /// <remarks>Use it for broadcast or multicast data sends.</remarks>
         public virtual void Send(byte[] data)
         {
-            Send(data, _remoteEndpoint);
+            Send(data, _destinationEndpoint);
         }
 
         /// <summary>
         /// Sends data to destination endpoint.
         /// </summary>
         /// <param name="data">/The data to be sent.</param>
-        /// <param name="remoteEndpoint">Destination for sent data.</param>
+        /// <param name="destinationEndpoint">Destination endpoint for sent data.</param>
         /// <exception cref="ArgumentNullException"><paramref name="data"/> is null.</exception>
-        public virtual void Send(byte[] data, IPEndPoint remoteEndpoint)
+        public virtual void Send(byte[] data, IPEndPoint destinationEndpoint)
         {
             if (data == null || data.Length == 0)
                 throw new ArgumentNullException(nameof(data), "Sent data is null or empty.");
 
-            CallUdpClientBeginSend(data, remoteEndpoint);
+            CallUdpClientBeginSend(data, destinationEndpoint);
         }
         
         /// <summary>
@@ -131,8 +130,7 @@ namespace GroupChat.Shared.Wrappers
             // restart listening for UDP incomes
             CallUdpClientBeginReceive();
         }
-
-
+        
         /// <summary>
         /// Invokes when datagram sent.
         /// </summary>
@@ -146,9 +144,9 @@ namespace GroupChat.Shared.Wrappers
         /// Invokes datagram sending.
         /// </summary>
         /// <param name="datagram">Datagram to be sent.</param>
-        /// <param name="remoteEp">Destination for sent datagram.</param>
-        private void CallUdpClientBeginSend(byte[] datagram, IPEndPoint remoteEp) =>
-            Client.BeginSend(datagram, datagram.Length, remoteEp, SentCallback, state: null);
+        /// <param name="dstEp">Destination for sent datagram.</param>
+        private void CallUdpClientBeginSend(byte[] datagram, IPEndPoint dstEp) =>
+            Client.BeginSend(datagram, datagram.Length, dstEp, SentCallback, state: null);
         
         #endregion private methods
         

@@ -5,8 +5,4 @@
         <RootNamespace>GroupChat.Shared.Domain</RootNamespace>
     </PropertyGroup>
 
-    <ItemGroup>
-        <Compile Include="Core.fs" />
-    </ItemGroup>
-
 </Project>

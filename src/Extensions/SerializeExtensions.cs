@@ -8,6 +8,14 @@ namespace GroupChat.Extensions
 {
     public static class SerializeExtensions
     {
+        /// <summary>
+        /// Serializes <paramref name="source"/> using XML.
+        /// </summary>
+        /// <param name="source">A value to be serialized.</param>
+        /// <typeparam name="TValue">The type of the value to be serialized.</typeparam>
+        /// <returns>Byte array of serialized object.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+        /// <exception cref="InvalidOperationException">An error occured during serialization.</exception>
         public static byte[] XmlSerialize<TValue>(this TValue source) where TValue : class
         {
             if (source == null)

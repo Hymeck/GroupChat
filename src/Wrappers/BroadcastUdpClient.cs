@@ -3,7 +3,7 @@ using System.Net;
 namespace GroupChat.Shared.Wrappers
 {
     /// <summary>
-    /// Provides broadcast messaging via UDP.
+    /// Configures <see cref="UdpClientWrapper"/> to broadcast messaging via UDP.
     /// </summary>
     public class BroadcastUdpClient : UdpClientWrapper
     {

@@ -4,19 +4,20 @@ using System.Net;
 namespace GroupChat.Shared.Wrappers
 {
     /// <summary>
-    /// Provides multicast messaging via UDP.
+    /// Configures <see cref="UdpClientWrapper"/> to multicast messaging via UDP.
     /// </summary>
     public class MulticastUdpClient : UdpClientWrapper
     {
         /// <inheritdoc/>
-        /// <exception cref="ArgumentException"><paramref name="remoteIpAddress"/> is not a multicast IP address.</exception>
-        public MulticastUdpClient(IPAddress remoteIpAddress, int port, IPAddress localIpAddress = null) : base(remoteIpAddress,
+        /// <exception cref="ArgumentException"><paramref name="destinationIpAddress"/> is not a multicast IP address.</exception>
+        public MulticastUdpClient(IPAddress destinationIpAddress, int port, IPAddress localIpAddress = null) : base(destinationIpAddress,
             port, localIpAddress)
         {
-            if (!IsMulticastIpAddress(remoteIpAddress))
-                throw new ArgumentException($"{nameof(remoteIpAddress)} is not a multicast IP address.", nameof(remoteIpAddress));
+            if (!IsMulticastIpAddress(destinationIpAddress))
+                throw new ArgumentException($"{nameof(destinationIpAddress)} is not a multicast IP address.", nameof(destinationIpAddress));
+            
             // join to multicast ip address
-            Client.JoinMulticastGroup(_remoteEndpoint.Address);
+            Client.JoinMulticastGroup(_destinationEndpoint.Address);
         }
 
         /// <summary>
@@ -25,8 +26,7 @@ namespace GroupChat.Shared.Wrappers
         /// </summary>
         public override void Close()
         {
-            // todo: send message to group participants?
-            Client.DropMulticastGroup(_remoteEndpoint.Address);
+            Client.DropMulticastGroup(_destinationEndpoint.Address);
             base.Close();
         }
 
