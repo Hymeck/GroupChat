@@ -6,7 +6,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Constants\Constants.fsproj" />
       <ProjectReference Include="..\Domain\Domain.fsproj" />
       <ProjectReference Include="..\Extensions\Extensions.csproj" />
       <ProjectReference Include="..\Interfaces\Interfaces.csproj" />

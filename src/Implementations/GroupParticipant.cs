@@ -16,9 +16,12 @@ namespace GroupChat.Implementations
         private MulticastUdpClient _chatClient = null;
         private int _multicastPort;
         private IPAddress _localIpAddress;
+        public readonly string Username;
 
-        public GroupParticipant(int broadcastPort, int multicastPort, IPAddress localIpAddress = null)
+        public GroupParticipant(string username, int broadcastPort, int multicastPort, IPAddress localIpAddress = null)
         {
+            Username = username;
+            
             _localIpAddress = localIpAddress;
             _networkClient = new BroadcastUdpClient(broadcastPort, _localIpAddress);
             _multicastPort = multicastPort;
@@ -43,16 +46,8 @@ namespace GroupChat.Implementations
 
             _chatClient = new MulticastUdpClient(_multicastIpAddress, _multicastPort, _localIpAddress);
             _chatClient.BeginReceive();
-            
-            _chatClient.DatagramReceived += (sender, args) =>
-            {
-                // todo: access or deny
-                var accessResponse = new GroupAccessResponse(Result.Yes,
-                    FSharpOption<IPEndPoint>.Some(new IPEndPoint(_multicastIpAddress, _multicastPort)));
-                
-                // todo: bleat, this is unicast, dude. correct crap.
-                _networkClient.Send(accessResponse.XmlSerialize());
-            };
+
+            _chatClient.DatagramReceived += OnDatagramReceived;
             
             throw new NotImplementedException();
         }
@@ -64,6 +59,20 @@ namespace GroupChat.Implementations
             throw new NotImplementedException();
         }
 
+        private void OnDatagramReceived(object sender, DatagramReceivedEventArgs args)
+        {
+            var message = args.Datagram;
+            var remoteEp = args.From;
+                
+            // todo: access or deny
+
+            var accessResponse = new GroupAccessResponse(Result.Yes,
+                FSharpOption<IPEndPoint>.Some(new IPEndPoint(_multicastIpAddress, _multicastPort)));
+            
+            
+            _networkClient.Send(accessResponse.XmlSerialize(), remoteEp);
+        }
+        
         public event EventHandler<GroupAccessEventArgs> GroupAccessRequestReceived;
     }
 

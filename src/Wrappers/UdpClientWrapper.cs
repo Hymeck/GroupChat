@@ -20,7 +20,7 @@ namespace GroupChat.Shared.Wrappers
         /// <summary>
         /// Used to send and receive UDP datagrams.
         /// </summary>
-        public readonly UdpClient _client;
+        public readonly UdpClient Client;
         
         /// <summary>
         /// Indicates whether listening of receiving data has begun or not.
@@ -51,14 +51,14 @@ namespace GroupChat.Shared.Wrappers
             var localIp = localIpAddress ?? IPAddress.Any;
             _remoteEndpoint = new IPEndPoint(remoteIpAddress, port);
 
-            _client = new UdpClient();
+            Client = new UdpClient();
             // allow multiple clients in the same PC
-            _client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            _client.ExclusiveAddressUse = false;
+            Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            Client.ExclusiveAddressUse = false;
             
             // bind socket with local endpoint
             var localEndpoint = new IPEndPoint(localIp, port);
-            _client.Client.Bind(localEndpoint);
+            Client.Client.Bind(localEndpoint);
         }
 
         #endregion constructor
@@ -78,26 +78,34 @@ namespace GroupChat.Shared.Wrappers
             _beginReceived = true;
             CallUdpClientBeginReceive();
         }
+        
+        /// Calls <see cref="Send(byte[], IPEndPoint)"/> with <see cref="IPEndPoint"/> specified by remote IP address.
+        /// <remarks>Use it for broadcast or multicast data sends.</remarks>
+        public virtual void Send(byte[] data)
+        {
+            Send(data, _remoteEndpoint);
+        }
 
         /// <summary>
-        /// Sends data to multicast address.
+        /// Sends data to destination endpoint.
         /// </summary>
-        /// <param name="data">/the data to be sent.</param>
+        /// <param name="data">/The data to be sent.</param>
+        /// <param name="remoteEndpoint">Destination for sent data.</param>
         /// <exception cref="ArgumentNullException"><paramref name="data"/> is null.</exception>
-        public virtual void Send(byte[] data)
+        public virtual void Send(byte[] data, IPEndPoint remoteEndpoint)
         {
             if (data == null || data.Length == 0)
                 throw new ArgumentNullException(nameof(data), "Sent data is null or empty.");
 
-            CallUdpClientBeginSend(data);
+            CallUdpClientBeginSend(data, remoteEndpoint);
         }
-
+        
         /// <summary>
         /// Closes udp client.
         /// </summary>
         public virtual void Close()
         {
-            _client.Close();
+            Client.Close();
         }
         
         #endregion public methods
@@ -107,7 +115,7 @@ namespace GroupChat.Shared.Wrappers
         /// <summary>
         /// Invokes datagram receiving.
         /// </summary>
-        private void CallUdpClientBeginReceive() => _client.BeginReceive(ReceivedCallback, state: null);
+        private void CallUdpClientBeginReceive() => Client.BeginReceive(ReceivedCallback, state: null);
 
         /// <summary>
         /// Invokes when datagram received.
@@ -116,10 +124,10 @@ namespace GroupChat.Shared.Wrappers
         private void ReceivedCallback(IAsyncResult result)
         {
             var senderEndpoint = new IPEndPoint(0, 0);
-            var receivedData = _client.EndReceive(result, ref senderEndpoint);
+            var receivedData = Client.EndReceive(result, ref senderEndpoint);
 
             // trigger event if subscribed 
-            DatagramReceived?.Invoke(this, new DatagramReceivedEventArgs(receivedData));
+            DatagramReceived?.Invoke(this, new DatagramReceivedEventArgs(receivedData, senderEndpoint));
             // restart listening for UDP incomes
             CallUdpClientBeginReceive();
         }
@@ -131,16 +139,16 @@ namespace GroupChat.Shared.Wrappers
         /// <param name="result">An object returned by a call of _client.BeginSend.</param>
         private void SentCallback(IAsyncResult result)
         {
-            _client.EndSend(result);
+            Client.EndSend(result);
         }
 
-        // call BeginSend of udp client
         /// <summary>
         /// Invokes datagram sending.
         /// </summary>
-        /// <param name="datagram">datagram to send.</param>
-        private void CallUdpClientBeginSend(byte[] datagram) =>
-            _client.BeginSend(datagram, datagram.Length, _remoteEndpoint, SentCallback, state: null);
+        /// <param name="datagram">Datagram to be sent.</param>
+        /// <param name="remoteEp">Destination for sent datagram.</param>
+        private void CallUdpClientBeginSend(byte[] datagram, IPEndPoint remoteEp) =>
+            Client.BeginSend(datagram, datagram.Length, remoteEp, SentCallback, state: null);
         
         #endregion private methods
         

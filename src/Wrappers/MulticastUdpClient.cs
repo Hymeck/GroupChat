@@ -16,7 +16,7 @@ namespace GroupChat.Shared.Wrappers
             if (!IsMulticastIpAddress(remoteIpAddress))
                 throw new ArgumentException($"{nameof(remoteIpAddress)} is not a multicast IP address.", nameof(remoteIpAddress));
             // join to multicast ip address
-            _client.JoinMulticastGroup(_remoteEndpoint.Address);
+            Client.JoinMulticastGroup(_remoteEndpoint.Address);
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace GroupChat.Shared.Wrappers
         public override void Close()
         {
             // todo: send message to group participants?
-            _client.DropMulticastGroup(_remoteEndpoint.Address);
+            Client.DropMulticastGroup(_remoteEndpoint.Address);
             base.Close();
         }
 

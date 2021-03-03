@@ -1,9 +1,12 @@
+using System;
+using System.Net;
 namespace GroupChat.Shared.Wrappers
 {
-    public class DatagramReceivedEventArgs : System.EventArgs
+    public class DatagramReceivedEventArgs : EventArgs
     {
         public byte[] Datagram { get; init; }
+        public IPEndPoint From { get; init; }
 
-        public DatagramReceivedEventArgs(byte[] datagram) => Datagram = datagram;
+        public DatagramReceivedEventArgs(byte[] datagram, IPEndPoint from) => (Datagram, From) = (datagram, from);
     }
 }
