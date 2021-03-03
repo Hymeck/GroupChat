@@ -1,5 +1,5 @@
-#nullable enable
 using System;
+using System.Linq;
 using System.Net;
 using GroupChat.Extensions;
 using GroupChat.Implementations.Dtos;
@@ -21,7 +21,7 @@ namespace GroupChat.Implementations
         public GroupParticipant(string username, int broadcastPort, int multicastPort, IPAddress localIpAddress = null)
         {
             Username = username;
-            
+
             _localIpAddress = localIpAddress;
             _networkClient = new BroadcastUdpClient(broadcastPort, _localIpAddress);
             _multicastPort = multicastPort;
@@ -34,50 +34,75 @@ namespace GroupChat.Implementations
     {
         private string _groupId = null;
         private IPAddress _multicastIpAddress = null;
-        
-        public IPEndPoint? CreateGroup(string groupId)
+
+        public bool CreateGroup(string groupId)
         {
-            // todo: check existence
-            _groupId = groupId;
+            // todo: 1. check existence
             
-            // todo: check freedom of multicast ip
+            _groupId = groupId;
+
+            // todo: 2. check freedom of multicast ip
+            
             var multicastIpAddress = IPAddress.Parse("224.0.0.0");
             _multicastIpAddress = multicastIpAddress;
 
             _chatClient = new MulticastUdpClient(_multicastIpAddress, _multicastPort, _localIpAddress);
+            _chatClient.DatagramReceived += OnGroupDatagramReceived;
             _chatClient.BeginReceive();
 
-            _chatClient.DatagramReceived += OnDatagramReceived;
-            
-            throw new NotImplementedException();
+
+            return true;
         }
 
         public bool DestroyGroup()
         {
             // todo: notify members
-            // todo: set null to multicast wrapper
-            throw new NotImplementedException();
+            
+            _chatClient.Close();
+            _chatClient = null;
+            
+            return true;
         }
 
-        private void OnDatagramReceived(object sender, DatagramReceivedEventArgs args)
+        private void OnGroupDatagramReceived(object sender, DatagramReceivedEventArgs args)
         {
-            var message = args.Datagram;
-            var remoteEp = args.From;
-                
-            // todo: access or deny
-
-            var accessResponse = new GroupAccessResponse(Result.Yes,
-                FSharpOption<IPEndPoint>.Some(new IPEndPoint(_multicastIpAddress, _multicastPort)));
+            var message = args.Datagram.XmlDeserialize<Message>();
             
+            MessageReceived?.Invoke(this, new MessageEventArgs<Message>(message));
+            // Console.WriteLine(message);
             
-            _networkClient.Send(accessResponse.XmlSerialize(), remoteEp);
+            // var message = args.Datagram;
+            // var remoteEp = args.From;
+            //
+            // // todo: access or deny
+            //
+            // var accessResponse = new GroupAccessResponse(Result.Yes,
+            //     FSharpOption<IPEndPoint>.Some(new IPEndPoint(_multicastIpAddress, _multicastPort)));
+            //
+            // var messageCode = GetMessageCode<GroupAccessResponse>();
+            //
+            // var responseDatagram = PrependMessageCode(accessResponse.XmlSerialize(), messageCode);
+            //
+            // _networkClient.Send(responseDatagram, remoteEp);
         }
-        
+
+        private static byte[] PrependMessageCode(byte[] source, byte messageCode) =>
+            source
+                .Prepend(messageCode)
+                .ToArray();
+
+
+        private static byte GetMessageCode<TMessage>() =>
+            (byte) Mapper.AssemblyTypes
+                .Where(t => t == typeof(TMessage))
+                .Select((t, i) => i)
+                .FirstOrDefault();
+
         public event EventHandler<GroupAccessEventArgs> GroupAccessRequestReceived;
     }
 
     #endregion creator impementation
-    
+
     #region participant implementation
 
     // todo: client to message exchanging in group should be null before joining? 
@@ -85,9 +110,12 @@ namespace GroupChat.Implementations
     {
         public void SendMessage(Message message)
         {
-            // todo: parse message to bytes
-            // todo: send message
-            throw new NotImplementedException();
+            if (_chatClient == null)
+                return;
+
+            var messageDatagram = message.XmlSerialize();
+            
+            _chatClient.Send(messageDatagram);
         }
 
         public bool LeaveGroup()

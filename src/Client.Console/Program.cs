@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using GroupChat.Extensions;
+using GroupChat.Implementations;
 using GroupChat.Implementations.Dtos;
 using GroupChat.Shared.Wrappers;
 
@@ -25,7 +26,8 @@ namespace GroupChat.Client.Console
             {
                 if (args.Length == 2)
                 {
-                    StartChatMessaging(args[0], args[1]);
+                    // StartChatMessaging(args[0], args[1]);
+                    StartChatMessaging2(args[0], args[1]);
                 }
                 
                 else
@@ -35,6 +37,40 @@ namespace GroupChat.Client.Console
             else
                 PrintSettings();
         }
+
+        private static void StartChatMessaging2(string username, string groupId)
+        {
+            System.Console.TreatControlCAsInput = false; // otherwise the system will handle CTRL+C for us
+            System.Console.CancelKeyPress += OnCancelKeyPress;
+
+            var create = username == "hymeck1" ? true : false;
+            var groupParticipant = new GroupParticipant(username, CommonPort, ChatPort);
+            
+            if (create) 
+                groupParticipant.CreateGroup(groupId);
+
+            groupParticipant.MessageReceived += OnGroupMessageReceived;
+            
+            System.Console.WriteLine($"== Group '{groupId}' ==");
+            while (true)
+            {
+                var text = System.Console.ReadLine();
+                
+                if (_stop)
+                    break;
+                
+                var message = new Message(username, text, DateTime.Now);
+                
+                groupParticipant.SendMessage(message);
+            }
+            
+        }
+
+        private static void OnGroupMessageReceived(object sender, MessageEventArgs<Message> e)
+        {
+            System.Console.WriteLine(e.Message);
+        }
+
         private static void StartChatMessaging(string username, string chatId)
         {
             System.Console.TreatControlCAsInput = false; // otherwise the system will handle CTRL+C for us

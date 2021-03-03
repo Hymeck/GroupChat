@@ -1,5 +1,4 @@
-﻿#nullable enable
-using System;
+﻿using System;
 using System.Net;
 
 namespace GroupChat.Shared.Interfaces
@@ -14,8 +13,8 @@ namespace GroupChat.Shared.Interfaces
         /// Creates a chat group.
         /// </summary>
         /// <param name="groupId">A group id.</param>
-        /// <returns><see cref="IPEndPoint"/> IP endpoint if operation was successful; otherwise, null.</returns>
-        IPEndPoint? CreateGroup(string groupId);
+        /// <returns>true if operation was successful; otherwise, false.</returns>
+        bool CreateGroup(string groupId);
         
         /// <summary>
         /// Destroys the chat group.

@@ -21,3 +21,4 @@ docker run -it group-chat-image
 - [UDP multicast](https://sashadu.wordpress.com/2016/06/10/c-udp-multicast/)
 - [Handle Ctrl+C termination](https://social.msdn.microsoft.com/Forums/en-US/4c9ff01a-a79c-42ef-8fd0-19480e8a1e0f/custom-hotkey-to-interrupt-an-infinite-while-loop?forum=csharpgeneral)
 - [.NET XML documentation example](https://github.com/dotnet/aspnetcore)
+- [UdpClient BeginReceive/EndReceive example](https://gist.github.com/zmilojko/5055246)
