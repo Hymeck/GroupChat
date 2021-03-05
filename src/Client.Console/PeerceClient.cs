@@ -120,7 +120,7 @@ namespace GroupChat.Client.Console
                 ConfigureMulticast(groupEp.Address, groupEp.Port, GetLocalIpAddress());
             }
 
-            catch (SocketException e)
+            catch (SocketException)
             {
                 // time is out, no response
             }

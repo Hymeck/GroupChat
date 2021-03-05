@@ -1,25 +1,18 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using static System.Console;
 
 namespace GroupChat.Client.Console
 {
     class Program
     {
-        /// <summary>
-        /// Port used for network participants to communicate.
-        /// </summary>
-        public static readonly int CommonPort = 9000;
+        private static PeerceClient _peerceClient;
         
-        /// <summary>
-        /// Port used for group participants to communicate.
-        /// </summary>
-        public static readonly int GroupPort = 9100;
-
-        public static bool _stop;
-
-        private static PeerceClient peerceClient;
+        private static readonly CancellationTokenSource Cts = new();
         
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             if (args.Length == 0)
             {
@@ -28,15 +21,15 @@ namespace GroupChat.Client.Console
             }
             
             var username = args[0];
-            peerceClient = new PeerceClient(username);
-            peerceClient.GroupJoinRequestReceived += OnGroupJoinRequestReceived;
-            peerceClient.GroupMessageReceived += OnGroupMessageReceived;
+            _peerceClient = new PeerceClient(username);
+            _peerceClient.GroupJoinRequestReceived += OnGroupJoinRequestReceived;
+            _peerceClient.GroupMessageReceived += OnGroupMessageReceived;
             
             // join case
             if (args.Length == 3)
             {
                 var groupId = args[2];
-                peerceClient.JoinGroup(groupId);
+                _peerceClient.JoinGroup(groupId);
             }
             
             // create case
@@ -44,28 +37,49 @@ namespace GroupChat.Client.Console
             {
                 var groupId = args[2];
                 var multicastIpAddress = IPAddress.Parse(args[3]);
-                peerceClient.CreateGroup(groupId, multicastIpAddress);
+                _peerceClient.CreateGroup(groupId, multicastIpAddress);
             }
             
-            TreatControlCAsInput = false; // otherwise the system will handle CTRL+C for us
-            CancelKeyPress += (_, _) =>
+            // TreatControlCAsInput = true; // otherwise the system will handle CTRL+C for us
+            CancelKeyPress += (_, e) =>
             {
-                WriteLine("Bye.");
-                _stop = false;
+                WriteLine("Cancelling...");
+                Cts.Cancel();
+                e.Cancel = true;
             };
             
+            var mainTask = Task.Run(MessagingLoop, Cts.Token);
+
+            try
+            {
+                await mainTask;
+            }
+
+            catch (OperationCanceledException)
+            {
+                WriteLine("Bye.");
+                _peerceClient.Finish();
+            }
+        }
+
+        private static async Task MessagingLoop()
+        {
             while (true)
             {
-                var text = ReadLine();
-                
-                if (_stop)
+                // var text = ReadLine();
+                var text = await ReadLineAsync();
+
+                if (Cts.Token.IsCancellationRequested)
+                {
+                    Cts.Token.ThrowIfCancellationRequested();
                     break;
+                }
                 
-                peerceClient.SendMessage(text);
+                _peerceClient.SendMessage(text);
             }
-            
-            peerceClient.Finish();
         }
+        
+        private static async Task<string> ReadLineAsync() => await Task.Run(ReadLine, Cts.Token); 
 
         private static void OnGroupMessageReceived(object sender, GroupMessageEventArgs e)
         {
@@ -77,11 +91,10 @@ namespace GroupChat.Client.Console
             WriteLine(e.ToString());
             WriteLine("Accept or deny? ([Y/n])");
 
-            var answer = ReadLine()?.ToUpper();
-
+            var answer = ReadLineAsync().Result;
             // todo: fuck, i don't come to these lines
             if (answer == "Y" || answer == "YES") 
-                peerceClient.Accept();
+                _peerceClient.Accept();
             
         }
 
