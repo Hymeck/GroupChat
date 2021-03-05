@@ -16,6 +16,8 @@ namespace GroupChat.Client.Console
         public static readonly int GroupPort = 9100;
 
         public static bool _stop;
+
+        private static PeerceClient peerceClient;
         
         static void Main(string[] args)
         {
@@ -26,13 +28,15 @@ namespace GroupChat.Client.Console
             }
             
             var username = args[0];
-            var peerceClient = new PeerceClient(username);
-
+            peerceClient = new PeerceClient(username);
+            peerceClient.GroupJoinRequestReceived += OnGroupJoinRequestReceived;
+            peerceClient.GroupMessageReceived += OnGroupMessageReceived;
+            
             // join case
             if (args.Length == 3)
             {
                 var groupId = args[2];
-                peerceClient.JoinGroup(groupId, IPAddress.Parse("224.0.0.0"));
+                peerceClient.JoinGroup(groupId);
             }
             
             // create case
@@ -61,6 +65,24 @@ namespace GroupChat.Client.Console
             }
             
             peerceClient.Finish();
+        }
+
+        private static void OnGroupMessageReceived(object sender, GroupMessageEventArgs e)
+        {
+            WriteLine(e);
+        }
+
+        private static void OnGroupJoinRequestReceived(object sender, GroupJoinRequestEventArgs e)
+        {
+            WriteLine(e.ToString());
+            WriteLine("Accept or deny? ([Y/n])");
+
+            var answer = ReadLine()?.ToUpper();
+
+            // todo: fuck, i don't come to these lines
+            if (answer == "Y" || answer == "YES") 
+                peerceClient.Accept();
+            
         }
 
         private static void PrintHelp()

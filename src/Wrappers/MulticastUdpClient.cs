@@ -17,7 +17,7 @@ namespace GroupChat.Shared.Wrappers
                 throw new ArgumentException($"{nameof(destinationIpAddress)} is not a multicast IP address.", nameof(destinationIpAddress));
             
             // join to multicast ip address
-            Client.JoinMulticastGroup(_destinationEndpoint.Address);
+            UdpClient.JoinMulticastGroup(_destinationEndpoint.Address);
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace GroupChat.Shared.Wrappers
         /// </summary>
         public override void Close()
         {
-            Client.DropMulticastGroup(_destinationEndpoint.Address);
+            UdpClient.DropMulticastGroup(_destinationEndpoint.Address);
             base.Close();
         }
 

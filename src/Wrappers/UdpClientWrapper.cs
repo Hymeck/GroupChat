@@ -5,7 +5,7 @@ using System.Net.Sockets;
 namespace GroupChat.Shared.Wrappers
 {
     /// <summary>
-    /// Configures <see cref="UdpClient"/> to send and receive datagrams.
+    /// Configures <see cref="System.Net.Sockets.UdpClient"/> to send and receive datagrams.
     /// </summary>
     public abstract class UdpClientWrapper
     {
@@ -19,7 +19,7 @@ namespace GroupChat.Shared.Wrappers
         /// <summary>
         /// Used to send and receive UDP datagrams.
         /// </summary>
-        public readonly UdpClient Client;
+        public readonly UdpClient UdpClient;
         
         /// <summary>
         /// Indicates whether listening of receiving data has begun or not.
@@ -27,6 +27,8 @@ namespace GroupChat.Shared.Wrappers
         protected bool _beginReceived;
         
         #endregion fields
+
+        public IPEndPoint DestinationEndpoint => _destinationEndpoint;
 
         #region constructor
 
@@ -50,14 +52,14 @@ namespace GroupChat.Shared.Wrappers
             var localIp = localIpAddress ?? IPAddress.Any;
             _destinationEndpoint = new IPEndPoint(destinationIpAddress, port);
 
-            Client = new UdpClient();
+            UdpClient = new UdpClient();
             // allow multiple clients in the same PC
-            Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            Client.ExclusiveAddressUse = false;
+            UdpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            UdpClient.ExclusiveAddressUse = false;
             
             // bind socket with local endpoint
             var localEndpoint = new IPEndPoint(localIp, port);
-            Client.Client.Bind(localEndpoint);
+            UdpClient.Client.Bind(localEndpoint);
         }
 
         #endregion constructor
@@ -104,7 +106,7 @@ namespace GroupChat.Shared.Wrappers
         /// </summary>
         public virtual void Close()
         {
-            Client.Close();
+            UdpClient.Close();
         }
         
         #endregion public methods
@@ -114,7 +116,7 @@ namespace GroupChat.Shared.Wrappers
         /// <summary>
         /// Invokes datagram receiving.
         /// </summary>
-        private void CallUdpClientBeginReceive() => Client.BeginReceive(ReceivedCallback, state: null);
+        private void CallUdpClientBeginReceive() => UdpClient.BeginReceive(ReceivedCallback, state: null);
 
         /// <summary>
         /// Invokes when datagram received.
@@ -123,7 +125,7 @@ namespace GroupChat.Shared.Wrappers
         private void ReceivedCallback(IAsyncResult result)
         {
             var senderEndpoint = new IPEndPoint(0, 0);
-            var receivedData = Client.EndReceive(result, ref senderEndpoint);
+            var receivedData = UdpClient.EndReceive(result, ref senderEndpoint);
 
             // trigger event if subscribed 
             DatagramReceived?.Invoke(this, new DatagramReceivedEventArgs(receivedData, senderEndpoint));
@@ -137,7 +139,7 @@ namespace GroupChat.Shared.Wrappers
         /// <param name="result">An object returned by a call of _client.BeginSend.</param>
         private void SentCallback(IAsyncResult result)
         {
-            Client.EndSend(result);
+            UdpClient.EndSend(result);
         }
 
         /// <summary>
@@ -146,7 +148,7 @@ namespace GroupChat.Shared.Wrappers
         /// <param name="datagram">Datagram to be sent.</param>
         /// <param name="dstEp">Destination for sent datagram.</param>
         private void CallUdpClientBeginSend(byte[] datagram, IPEndPoint dstEp) =>
-            Client.BeginSend(datagram, datagram.Length, dstEp, SentCallback, state: null);
+            UdpClient.BeginSend(datagram, datagram.Length, dstEp, SentCallback, state: null);
         
         #endregion private methods
         
