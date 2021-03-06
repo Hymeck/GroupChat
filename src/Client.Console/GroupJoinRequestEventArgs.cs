@@ -9,24 +9,24 @@ namespace GroupChat.Client.Console
         public string Username { get; init; }
         public string GroupId { get; init; }
         public DateTime RequestedAt { get; init; }
-        public IPAddress FromIpAddress { get; init; }
+        public IPEndPoint From { get; init; }
 
         public GroupJoinRequestEventArgs()
         {
         }
 
-        public GroupJoinRequestEventArgs(string username, string groupId, DateTime requestedAt, IPAddress fromIpAddress)
+        public GroupJoinRequestEventArgs(string username, string groupId, DateTime requestedAt, IPEndPoint from)
         {
             Username = username;
             GroupId = groupId;
             RequestedAt = requestedAt;
-            FromIpAddress = fromIpAddress;
+            From = from;
         }
 
         public override string ToString() =>
             $"{GroupId}{Environment.NewLine}" +
             $"{Username}{Environment.NewLine}" +
-            $"{FromIpAddress}{Environment.NewLine}" +
+            $"{From}{Environment.NewLine}" +
             $"{RequestedAt.ToString(CultureInfo.CurrentCulture)}";
     }
 }
