@@ -4,7 +4,7 @@ using System.Net;
 namespace GroupChat.Shared.Wrappers
 {
     /// <summary>
-    /// Configures <see cref="UdpClientWrapper"/> to multicast messaging via UDP.
+    /// Configures <see cref="UdpClientWrapper"/> to multicast messaging.
     /// </summary>
     public class MulticastUdpClient : UdpClientWrapper
     {
@@ -24,10 +24,13 @@ namespace GroupChat.Shared.Wrappers
         ///  <inheritdoc/>
         /// Leaves the multicast group. 
         /// </summary>
-        public override void Close()
+        public override void Dispose()
         {
+            // After calling the DropMulticastGroup method,
+            // the underlying socket sends an Internet Group Management Protocol (IGMP) packet
+            // to the router, removing the router from the multicast group.
             UdpClient.DropMulticastGroup(_destinationEndpoint.Address);
-            base.Close();
+            base.Dispose();
         }
 
         /// <summary>

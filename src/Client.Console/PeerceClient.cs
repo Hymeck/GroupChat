@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Net;
-using System.Net.Sockets;
 using GroupChat.Extensions;
 using GroupChat.Shared.Wrappers;
 
@@ -10,8 +9,15 @@ namespace GroupChat.Client.Console
     public class PeerceClient
     {
         public readonly string Username;
-        private BroadcastUdpClient _broadcast;
+
+        private string _groupId;
+        private bool _isGroupCreator;
+        
+        private ConcurrentQueue<JoinQueueElement> _joinRequestQueue;
+
+        private BroadcastUdpClientWrapper _broadcast;
         private MulticastUdpClient _multicast;
+        
         public bool IsGroupParticipant => _multicast != null;
 
         public PeerceClient(string username, int port = 9000, IPAddress localIpAddress = null)
@@ -23,16 +29,9 @@ namespace GroupChat.Client.Console
 
         private void ConfigureBroadcast(int port, IPAddress localIpAddress)
         {
-            if (_broadcast != null)
-            {
-                _broadcast.Close();
-                _broadcast = null;
-            }
+            _broadcast?.UdpClient.Dispose();
 
-            _broadcast = new BroadcastUdpClient(port, localIpAddress);
-            _broadcast.DatagramReceived += OnBroadcastDatagramReceived;
-            // _broadcast.UdpClient.Client.ReceiveTimeout = 10000; // set timeout of sync receive (after 10 s will be raised SocketException)
-            _broadcast.BeginReceive();
+            _broadcast = new BroadcastUdpClientWrapper(port, localIpAddress);
         }
 
         private static bool TryDeserializeDatagram<T>(byte[] datagram, out T result) where T : class
@@ -77,21 +76,19 @@ namespace GroupChat.Client.Console
             ConfigureMulticast(groupEp.Address, groupEp.Port, GetLocalIpAddress());
         }
         
-        private void OnBroadcastDatagramReceived(object sender, DatagramReceivedEventArgs e)
-        {
-            var datagram = e.Datagram;
-            if (TryDeserializeDatagram(datagram, out GroupJoinRequest joinRequest))
-            {
-                AddJoinRequestToQueue(joinRequest, e.From);
-            }
-            
-            else if (TryDeserializeDatagram(datagram, out GroupJoinResponse joinResponse))
-            {
-                SetGroup(joinResponse);
-            }
-        }
-
-        private ConcurrentQueue<JoinQueueElement> _joinRequestQueue;
+        // private void OnBroadcastDatagramReceived(object sender, DatagramReceivedEventArgs e)
+        // {
+        //     var datagram = e.Datagram;
+        //     if (TryDeserializeDatagram(datagram, out GroupJoinRequest joinRequest))
+        //     {
+        //         AddJoinRequestToQueue(joinRequest, e.From);
+        //     }
+        //     
+        //     else if (TryDeserializeDatagram(datagram, out GroupJoinResponse joinResponse))
+        //     {
+        //         SetGroup(joinResponse);
+        //     }
+        // }
 
         public void HandleJoinRequestQueue()
         {
@@ -120,12 +117,12 @@ namespace GroupChat.Client.Console
             
             var multicastEp = _multicast.DestinationEndpoint;
             var joinResponse = new GroupJoinResponse(ResponseCode.Success, _groupId, multicastEp);
-            _broadcast.Send(joinResponse.XmlSerialize(), e.From);
+            // _broadcast.Send(joinResponse.XmlSerialize(), e.From);
         }
 
         private void ConfigureMulticast(IPAddress multicastIpAddress, int port, IPAddress localIpAddress)
         {
-            _multicast?.Close();
+            _multicast?.Dispose();
             _joinRequestQueue?.Clear();
 
             _multicast = new MulticastUdpClient(multicastIpAddress, port, localIpAddress);
@@ -144,10 +141,7 @@ namespace GroupChat.Client.Console
             
             GroupMessageReceived?.Invoke(this, msgArgs);
         }
-        
-        private string _groupId;
-        private bool _isGroupCreator;
-        
+
         public void CreateGroup(string groupId, IPAddress multicastIpAddress, int port = 9100)
         {
             _groupId = groupId;
@@ -195,10 +189,10 @@ namespace GroupChat.Client.Console
             _multicast.Send(msg.XmlSerialize());
         }
         
-        public void Finish()
+        public void Close()
         {
-            _broadcast?.Close();
-            _multicast?.Close();
+            _broadcast?.UdpClient.Dispose();
+            _multicast?.Dispose();
         }
 
         public event EventHandler<GroupJoinRequestEventArgs> GroupJoinRequestReceived;

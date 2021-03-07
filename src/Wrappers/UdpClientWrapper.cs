@@ -1,68 +1,23 @@
 ﻿using System;
 using System.Net;
-using System.Net.Sockets;
 
 namespace GroupChat.Shared.Wrappers
 {
     /// <summary>
-    /// Configures <see cref="System.Net.Sockets.UdpClient"/> to send and receive datagrams.
+    /// Provides methods for sending and receiving datagrams asynchronously.
     /// </summary>
-    public abstract class UdpClientWrapper
+    public class UdpClientWrapper : BaseUdpClientWrapper
     {
-        #region fields
-        
-        /// <summary>
-        /// Holds destination endpoint.
-        /// </summary>
-        protected readonly IPEndPoint _destinationEndpoint;
-
-        /// <summary>
-        /// Used to send and receive UDP datagrams.
-        /// </summary>
-        public readonly UdpClient UdpClient;
-        
         /// <summary>
         /// Indicates whether listening of receiving data has begun or not.
         /// </summary>
         protected bool _beginReceived;
         
-        #endregion fields
-
-        public IPEndPoint DestinationEndpoint => _destinationEndpoint;
-
-        #region constructor
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="UdpClientWrapper"/> class with specified <paramref name="destinationIpAddress"/>, <paramref name="port"/> and <paramref name="localIpAddress"/>.
-        /// <remarks>If you don't know your real local IP address pass <paramref name="localIpAddress"/> as null.</remarks> 
-        /// </summary>
-        /// <param name="destinationIpAddress">A destination IP address.</param>
-        /// <param name="port">The port used to send and receive datagrams.</param>
-        /// <param name="localIpAddress">A local IP address.</param>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="port"/> is less than 0 or greater than 65535.</exception>
-        /// <exception cref="ArgumentNullException"><paramref name="destinationIpAddress"/> is null.</exception>
-        protected UdpClientWrapper(IPAddress destinationIpAddress, int port, IPAddress localIpAddress = null)
+        /// <inheritdoc/>
+        public UdpClientWrapper(IPAddress destinationIpAddress, int port, IPAddress localIpAddress = null) : 
+            base(destinationIpAddress, port, localIpAddress)
         {
-            if (port < ushort.MinValue || port > ushort.MaxValue)
-                throw new ArgumentOutOfRangeException(nameof(port));
-
-            if (destinationIpAddress == null)
-                throw new ArgumentNullException(nameof(destinationIpAddress));
-
-            var localIp = localIpAddress ?? IPAddress.Any;
-            _destinationEndpoint = new IPEndPoint(destinationIpAddress, port);
-
-            UdpClient = new UdpClient();
-            // allow multiple clients in the same PC
-            UdpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            UdpClient.ExclusiveAddressUse = false;
-            
-            // bind socket with local endpoint
-            var localEndpoint = new IPEndPoint(localIp, port);
-            UdpClient.Client.Bind(localEndpoint);
         }
-
-        #endregion constructor
         
         #region public methods
 
@@ -103,11 +58,11 @@ namespace GroupChat.Shared.Wrappers
         }
         
         /// <summary>
-        /// Closes udp client.
+        /// Disposes <see cref="System.Net.Sockets.UdpClient"/> object.
         /// </summary>
-        public virtual void Close()
+        public virtual void Dispose()
         {
-            UdpClient.Close();
+            UdpClient.Dispose();
         }
         
         #endregion public methods

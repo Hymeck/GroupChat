@@ -64,7 +64,7 @@ namespace GroupChat.Client.Console
                 catch (OperationCanceledException)
                 {
                     WriteLine("Bye.");
-                    _peerceClient.Finish();
+                    _peerceClient.Close();
                 }
             }
 
@@ -83,7 +83,7 @@ namespace GroupChat.Client.Console
                 catch (OperationCanceledException)
                 {
                     WriteLine("Bye.");
-                    _peerceClient.Finish();
+                    _peerceClient.Close();
                 }
             }
         }
