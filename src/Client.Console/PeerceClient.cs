@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using GroupChat.Extensions;
 using GroupChat.Shared.Wrappers;
 
@@ -24,16 +26,33 @@ namespace GroupChat.Client.Console
         {
             Username = username;
             
-            ConfigureBroadcast(port, localIpAddress);
+            InitBroadcast(port, localIpAddress);
         }
 
-        private void ConfigureBroadcast(int port, IPAddress localIpAddress)
+        private void InitBroadcast(int port, IPAddress localIpAddress)
         {
             _broadcast?.UdpClient.Dispose();
 
             _broadcast = new BroadcastUdpClientWrapper(port, localIpAddress);
         }
 
+        public void StartBroadcastReceiving(CancellationToken cancellationToken)
+        {
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    var receiveResult = await _broadcast.UdpClient.ReceiveAsync();
+                    ProcessReceiveResult(receiveResult.Buffer, receiveResult.RemoteEndPoint);
+                }
+            }, cancellationToken);
+        }
+
+        private void ProcessReceiveResult(byte[] datagram, IPEndPoint remoteEndpoint)
+        {
+            
+        }
+        
         private static bool TryDeserializeDatagram<T>(byte[] datagram, out T result) where T : class
         {
             try
@@ -48,16 +67,14 @@ namespace GroupChat.Client.Console
             }
         }
 
-        private void ConfigureMulticast(IPAddress multicastIpAddress, int port, IPAddress localIpAddress)
+        private void InitMulticast(IPAddress multicastIpAddress, int port, IPAddress localIpAddress)
         {
             _multicast?.Dispose();
-            _joinRequestQueue?.Clear();
 
             _multicast = new MulticastUdpClient(multicastIpAddress, port, localIpAddress);
             _multicast.DatagramReceived += OnMulticastDatagramReceived;
             _multicast.BeginReceive();
 
-            _joinRequestQueue = new ConcurrentQueue<JoinQueueElement>();
         }
 
         public void CreateGroup(string groupId, IPAddress multicastIpAddress, int port = 9100)
@@ -65,7 +82,7 @@ namespace GroupChat.Client.Console
             _groupId = groupId;
             _isGroupCreator = true;
             
-            ConfigureMulticast(multicastIpAddress, port, GetLocalIpAddress());
+            InitMulticast(multicastIpAddress, port, GetLocalIpAddress());
         }
 
         private IPAddress GetLocalIpAddress() => _broadcast.LocalEndpoint.Address;

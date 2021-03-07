@@ -10,6 +10,7 @@ namespace GroupChat.Client.Console
     class Program
     {
         private static PeerceClient _peerceClient;
+        private static readonly CancellationTokenSource cts = new();
 
 #pragma warning disable 1998
         static async Task Main(string[] args)
@@ -23,6 +24,7 @@ namespace GroupChat.Client.Console
 
             var username = args[0];
             _peerceClient = new PeerceClient(username);
+            _peerceClient.StartBroadcastReceiving(cts.Token);
 
             // join case
             if (args.Length == 3)
@@ -35,6 +37,7 @@ namespace GroupChat.Client.Console
             {
                 var groupId = args[2];
                 var multicastIp = IPAddress.Parse(args[3]);
+                _peerceClient.CreateGroup(groupId, multicastIp);
             }
         }
 
@@ -51,7 +54,7 @@ namespace GroupChat.Client.Console
         private static void PrintHelp()
         {
             WriteLine("name [command] <options>");
-            WriteLine("name - username which will displayed for other network participants");
+            WriteLine("name - username which will be displayed for other network participants");
             WriteLine("command - command to use");
 
             WriteLine("\tcreate [id] [addr]");

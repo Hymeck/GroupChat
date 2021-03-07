@@ -16,6 +16,9 @@ namespace GroupChat.Shared.Wrappers
         /// </summary>
         protected readonly IPEndPoint _destinationEndpoint;
 
+        /// <summary>
+        /// Holds local endpoint;
+        /// </summary>
         protected readonly IPEndPoint _localEndpoint;
         
         /// <summary>
@@ -27,8 +30,14 @@ namespace GroupChat.Shared.Wrappers
 
         #region properties
 
+        /// <summary>
+        /// Gets the destination endpoint.
+        /// </summary>
         public IPEndPoint DestinationEndpoint => _destinationEndpoint;
 
+        /// <summary>
+        /// Gets the local endpoint.
+        /// </summary>
         public IPEndPoint LocalEndpoint => _localEndpoint;
 
         #endregion properties
