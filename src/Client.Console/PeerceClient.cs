@@ -117,7 +117,7 @@ namespace GroupChat.Client.Console
             HandleJoinResponse(response);
         }
 
-        public async Task CheckGroupJoinRequests()
+        public async Task CheckGroupJoinRequests(Func<GroupJoinRequest, IPEndPoint, bool> choice)
         {
             // ignore if i am not a creator
             if (!_isGroupCreator)
@@ -126,30 +126,27 @@ namespace GroupChat.Client.Console
             //todo: remove hardcoded console IO
             while (_joinRequestQueue.TryDequeue(out var item))
             {
-                var gjr = item.Item1;
-                var from = item.Item2;
+                var groupJoinRequest = item.Item1;
+                var fromEndpoint = item.Item2;
+
+                var isAccept = choice(groupJoinRequest, fromEndpoint);
+                var responseCode = isAccept.ToResponseCode(); 
                 
-                System.Console.WriteLine("+++");
-                System.Console.WriteLine($"{gjr.GroupId}");
-                System.Console.WriteLine($"{gjr.Username}");
-                System.Console.WriteLine($"{from.Address}");
-                System.Console.WriteLine($"\t{gjr.SentAt}");
-                System.Console.WriteLine("+++");
-                System.Console.WriteLine("Accept or deny? ([Y/n])");
-
-                var answer = System.Console.ReadLine()?.ToUpper();
-
-                if (answer == "Y" || answer == "YES")
-                {
-                    var responseDatagram =
-                        new GroupJoinResponse(
-                            ResponseCode.Success, 
+                var responseDatagram =
+                    new GroupJoinResponse(
+                            responseCode, 
                             _groupId, 
                             _multicast.DestinationEndpoint.ToString())
-                            .XmlSerialize();
+                        .XmlSerialize();
 
-                    // await _broadcast.UdpClient.SendAsync(responseDatagram, responseDatagram.Length, from);
-                    await _broadcast.UdpClient.SendAsync(responseDatagram, responseDatagram.Length, _broadcast.DestinationEndpoint);
+                // await _broadcast.UdpClient.SendAsync(responseDatagram, responseDatagram.Length, from);
+                await _broadcast.UdpClient.SendAsync(responseDatagram, responseDatagram.Length, _broadcast.DestinationEndpoint);
+
+                if (isAccept)
+                {
+                    var joinedMessage = new GroupMessage(groupJoinRequest.Username, $"{groupJoinRequest.Username} joined!",
+                        DateTime.Now);
+                    _multicast.Send(joinedMessage.XmlSerialize());
                 }
             }
         }

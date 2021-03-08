@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.Console;
@@ -28,9 +29,9 @@ namespace GroupChat.Client.Console
             if (args.Length == 3)
             {
                 var groupId = args[2];
-                
+
                 _peerceClient.JoinGroup(groupId, cts.Token).Wait();
-                
+
                 if (_peerceClient.IsGroupParticipant)
                     _peerceClient.GroupMessageReceived += OnGroupMessageReceived;
             }
@@ -40,9 +41,9 @@ namespace GroupChat.Client.Console
             {
                 var groupId = args[2];
                 var multicastIp = IPAddress.Parse(args[3]);
-                
-                _peerceClient.CreateGroup(groupId, multicastIp);
+
                 _peerceClient.GroupMessageReceived += OnGroupMessageReceived;
+                _peerceClient.CreateGroup(groupId, multicastIp);
             }
 
             TreatControlCAsInput = true;
@@ -52,7 +53,7 @@ namespace GroupChat.Client.Console
                 cts.Cancel();
             };
 
-            Task.Run( () =>
+            Task.Run(() =>
             {
                 if (!_peerceClient.IsGroupParticipant)
                     return;
@@ -63,23 +64,42 @@ namespace GroupChat.Client.Console
 
                     _peerceClient.SendMessage(text);
 
-                    _peerceClient.CheckGroupJoinRequests().Wait();
+                    _peerceClient.CheckGroupJoinRequests(RequestChoice)
+                        .Wait();
                 }
-                
             }, cts.Token).Wait();
-            
+
             WriteLine("Bye.");
             _peerceClient.Close();
         }
 
+        private static void PrintJoinRequestData(GroupJoinRequest gjr, IPEndPoint from)
+        {
+            WriteLine($"+++{Environment.NewLine}" +
+                      $"{gjr.GroupId}{Environment.NewLine}" +
+                      $"{gjr.Username}{Environment.NewLine}" +
+                      $"{from.Address}{Environment.NewLine}" +
+                      $"\t{gjr.SentAt}{Environment.NewLine}" +
+                      $"+++{Environment.NewLine}" +
+                      "Accept or deny? ([Y/n])");
+        }
+
+        private static bool RequestChoice(GroupJoinRequest joinRequest, IPEndPoint from)
+        {
+            PrintJoinRequestData(joinRequest, from);
+
+            var answer = ReadLine()?.ToUpper();
+            return answer == "Y" || answer == "YES";
+        }
+
         private static void OnGroupMessageReceived(object sender, GroupMessageEventArgs e)
         {
-            WriteLine("===");
-            WriteLine($"** {e.GroupId} **");
-            WriteLine($" {e.Username}");
-            WriteLine($" {e.Text}\n");
-            WriteLine($"\t{e.SentAt.ToShortTimeString()}");
-            WriteLine("===\n");
+            WriteLine($"==={Environment.NewLine}" +
+                      $"** {e.GroupId} **{Environment.NewLine}" +
+                      $"{e.Username}{Environment.NewLine}" +
+                      $"{e.Text}{Environment.NewLine}" +
+                      $"\t{e.SentAt.ToShortTimeString()}{Environment.NewLine}" +
+                      $"==={Environment.NewLine}");
         }
 
         private static void PrintHelp()
