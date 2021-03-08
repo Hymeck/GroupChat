@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>GroupChat.Client</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Extensions\Extensions.csproj" />
+      <ProjectReference Include="..\Wrappers\Wrappers.csproj" />
+    </ItemGroup>
+
+</Project>

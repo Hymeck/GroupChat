@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using GroupChat.Extensions;
 using GroupChat.Shared.Wrappers;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Client
 {
     /// <summary>
-    /// Provides methods for group messaging via UDP
+    /// Provides methods for group messaging via UDP.
     /// </summary>
     public partial class PeerceClient
     {

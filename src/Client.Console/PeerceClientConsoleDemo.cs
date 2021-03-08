@@ -2,11 +2,12 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using GroupChat.Client;
 using static System.Console;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Console
 {
-    class Program
+    class PeerceClientConsoleDemo
     {
         private static PeerceClient _peerceClient;
         private static readonly CancellationTokenSource cts = new();

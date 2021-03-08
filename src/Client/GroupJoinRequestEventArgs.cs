@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Net;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Client
 {
     public class GroupJoinRequestEventArgs : EventArgs
     {

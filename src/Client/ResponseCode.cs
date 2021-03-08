@@ -1,4 +1,4 @@
-namespace GroupChat.Client.Console
+namespace GroupChat.Client
 {
     public enum ResponseCode
     {

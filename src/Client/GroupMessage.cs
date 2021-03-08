@@ -1,6 +1,6 @@
 using System;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Client
 {
     public class GroupMessage
     {

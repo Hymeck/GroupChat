@@ -1,7 +1,7 @@
 using System;
 using System.Net;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Client
 {
     public class GroupMessageEventArgs : EventArgs
     {

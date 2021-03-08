@@ -1,7 +1,7 @@
 #nullable enable
 using System;
 
-namespace GroupChat.Client.Console
+namespace GroupChat.Client
 {
     public sealed class GroupJoinRejectedException : Exception
     {
