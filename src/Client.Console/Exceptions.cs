@@ -5,7 +5,7 @@ namespace GroupChat.Client.Console
 {
     public sealed class GroupJoinDeniedException : Exception
     {
-        public GroupJoinDeniedException() : base("Join request was denied.")
+        public GroupJoinDeniedException() : base("Group join request was denied.")
         {
         }
 

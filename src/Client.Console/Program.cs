@@ -1,6 +1,4 @@
-﻿using System;
-using System.Net;
-using System.Net.Sockets;
+﻿using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.Console;
@@ -30,6 +28,11 @@ namespace GroupChat.Client.Console
             if (args.Length == 3)
             {
                 var groupId = args[2];
+                
+                _peerceClient.JoinGroup(groupId, cts.Token).Wait();
+                
+                if (_peerceClient.IsGroupParticipant)
+                    _peerceClient.GroupMessageReceived += OnGroupMessageReceived;
             }
 
             // create case
@@ -37,8 +40,36 @@ namespace GroupChat.Client.Console
             {
                 var groupId = args[2];
                 var multicastIp = IPAddress.Parse(args[3]);
+                
                 _peerceClient.CreateGroup(groupId, multicastIp);
+                _peerceClient.GroupMessageReceived += OnGroupMessageReceived;
             }
+
+            TreatControlCAsInput = true;
+            CancelKeyPress += (_, e) =>
+            {
+                e.Cancel = true;
+                cts.Cancel();
+            };
+
+            Task.Run( () =>
+            {
+                if (!_peerceClient.IsGroupParticipant)
+                    return;
+
+                while (true)
+                {
+                    var text = ReadLine();
+
+                    _peerceClient.SendMessage(text);
+
+                    _peerceClient.CheckGroupJoinRequests().Wait();
+                }
+                
+            }, cts.Token).Wait();
+            
+            WriteLine("Bye.");
+            _peerceClient.Close();
         }
 
         private static void OnGroupMessageReceived(object sender, GroupMessageEventArgs e)

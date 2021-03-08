@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GroupChat.Extensions;
 using GroupChat.Shared.Wrappers;
+using Microsoft.FSharp.Core;
 
 namespace GroupChat.Client.Console
 {
@@ -14,13 +15,14 @@ namespace GroupChat.Client.Console
 
         private string _groupId;
         private bool _isGroupCreator;
+        private bool _isGroupParticipant;
         
-        private ConcurrentQueue<JoinQueueElement> _joinRequestQueue;
+        private ConcurrentQueue<(GroupJoinRequest, IPEndPoint)> _joinRequestQueue;
 
         private BroadcastUdpClientWrapper _broadcast;
         private MulticastUdpClient _multicast;
-        
-        public bool IsGroupParticipant => _multicast != null;
+
+        public bool IsGroupParticipant => _isGroupParticipant;
 
         public PeerceClient(string username, int port = 9000, IPAddress localIpAddress = null)
         {
@@ -50,7 +52,9 @@ namespace GroupChat.Client.Console
 
         private void ProcessReceiveResult(byte[] datagram, IPEndPoint remoteEndpoint)
         {
-            
+            // as creator, i am waiting for group join requests
+            if (TryDeserializeDatagram(datagram, out GroupJoinRequest joinRequest)) 
+                HandleJoinRequest(joinRequest, remoteEndpoint);
         }
         
         private static bool TryDeserializeDatagram<T>(byte[] datagram, out T result) where T : class
@@ -70,23 +74,25 @@ namespace GroupChat.Client.Console
         private void InitMulticast(IPAddress multicastIpAddress, int port, IPAddress localIpAddress)
         {
             _multicast?.Dispose();
+            _multicast = null;
 
-            _multicast = new MulticastUdpClient(multicastIpAddress, port, localIpAddress);
+            _multicast ??= new MulticastUdpClient(multicastIpAddress, port, localIpAddress);
             _multicast.DatagramReceived += OnMulticastDatagramReceived;
             _multicast.BeginReceive();
-
         }
 
         public void CreateGroup(string groupId, IPAddress multicastIpAddress, int port = 9100)
         {
             _groupId = groupId;
-            _isGroupCreator = true;
-            
+            _isGroupCreator = _isGroupParticipant = true;
+
             InitMulticast(multicastIpAddress, port, GetLocalIpAddress());
+            
+            _joinRequestQueue?.Clear();
+            _joinRequestQueue ??= new ConcurrentQueue<(GroupJoinRequest, IPEndPoint)>();
         }
 
         private IPAddress GetLocalIpAddress() => _broadcast.LocalEndpoint.Address;
-        
         
         public void Close()
         {
@@ -94,6 +100,99 @@ namespace GroupChat.Client.Console
             _multicast?.Dispose();
         }
     }
+
+    #region broadcast handling
+
+    public partial class PeerceClient
+    {
+        public async Task JoinGroup(string groupId, CancellationToken cancellationToken)
+        {
+            var datagram = new GroupJoinRequest(Username, groupId, DateTime.Now).XmlSerialize();
+            
+            await _broadcast.UdpClient.SendAsync(datagram, datagram.Length, _broadcast.DestinationEndpoint).ConfigureAwait(false);
+            var receiveResult = await _broadcast.UdpClient.ReceiveAsync(60000, cancellationToken).ConfigureAwait(false);
+
+            var response = receiveResult.Buffer.XmlDeserialize<GroupJoinResponse>();
+            
+            HandleJoinResponse(response);
+        }
+
+        public async Task CheckGroupJoinRequests()
+        {
+            // ignore if i am not a creator
+            if (!_isGroupCreator)
+                return;
+            
+            //todo: remove hardcoded console IO
+            while (_joinRequestQueue.TryDequeue(out var item))
+            {
+                var gjr = item.Item1;
+                var from = item.Item2;
+                
+                System.Console.WriteLine("+++");
+                System.Console.WriteLine($"{gjr.GroupId}");
+                System.Console.WriteLine($"{gjr.Username}");
+                System.Console.WriteLine($"{from.Address}");
+                System.Console.WriteLine($"\t{gjr.SentAt}");
+                System.Console.WriteLine("+++");
+                System.Console.WriteLine("Accept or deny? ([Y/n])");
+
+                var answer = System.Console.ReadLine()?.ToUpper();
+
+                if (answer == "Y" || answer == "YES")
+                {
+                    var responseDatagram =
+                        new GroupJoinResponse(
+                            ResponseCode.Success, 
+                            _groupId, 
+                            _multicast.DestinationEndpoint.ToString())
+                            .XmlSerialize();
+
+                    // await _broadcast.UdpClient.SendAsync(responseDatagram, responseDatagram.Length, from);
+                    await _broadcast.UdpClient.SendAsync(responseDatagram, responseDatagram.Length, _broadcast.DestinationEndpoint);
+                }
+            }
+        }
+        
+        private void HandleJoinResponse(GroupJoinResponse joinResponse)
+        {
+            var code = joinResponse.Code;
+            
+            if (code.IsSuccess())
+                DoJoinGroup(IPEndPoint.Parse(joinResponse.GroupIpEndpoint), joinResponse.GroupId);
+
+            else if (code.IsFail())
+                throw new GroupJoinDeniedException();
+        }
+
+        private void DoJoinGroup(IPEndPoint groupEndpoint, string groupId)
+        {
+            _groupId = groupId;
+            _isGroupParticipant = true;
+            
+            InitMulticast(groupEndpoint.Address, groupEndpoint.Port, GetLocalIpAddress());
+        }
+
+        private void HandleJoinRequest(GroupJoinRequest joinRequest, IPEndPoint from)
+        {
+            // ignore me-to-me message
+            if (joinRequest.Username == Username)
+                return;
+
+            // ignore if requested group id does not match with mine
+            if (joinRequest.GroupId != _groupId)
+                return;
+            
+            // ignore if i am not a creator
+            if (!_isGroupCreator)
+                return;
+            
+            // so i am creator of request group. add to the queue
+            _joinRequestQueue.Enqueue((joinRequest, from));
+        }
+    }
+
+    #endregion broadcast handling
 
     #region group messaging
 
@@ -122,14 +221,4 @@ namespace GroupChat.Client.Console
     }
 
     #endregion group messaging
-
-    #region broadcast handling
-
-    public partial class PeerceClient
-    {
-        // public event EventHandler<GroupJoinRequestEventArgs> GroupJoinRequestReceived;
-    }
-
-    #endregion broadcast handling
-
 }

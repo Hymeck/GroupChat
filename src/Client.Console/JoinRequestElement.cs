@@ -2,16 +2,16 @@ using System.Net;
 
 namespace GroupChat.Client.Console
 {
-    public class JoinQueueElement
+    public class JoinRequestElement
     {
         public GroupJoinRequest Request { get; init; }
         public IPEndPoint From { get; init; }
 
-        public JoinQueueElement()
+        public JoinRequestElement()
         {
         }
 
-        public JoinQueueElement(GroupJoinRequest request, IPEndPoint from)
+        public JoinRequestElement(GroupJoinRequest request, IPEndPoint from)
         {
             Request = request;
             From = from;

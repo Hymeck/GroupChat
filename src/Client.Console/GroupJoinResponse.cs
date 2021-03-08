@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net;
 using Microsoft.FSharp.Core;
 
@@ -7,17 +8,19 @@ namespace GroupChat.Client.Console
     {
         public ResponseCode Code { get; init; }
         public string GroupId { get; init; }
-        public FSharpOption<IPEndPoint> GroupEndpoint { get; init; }
-
+        public string? GroupIpEndpoint { get; init; }
+        
+#pragma warning disable 8618
         public GroupJoinResponse()
+#pragma warning restore 8618
         {
         }
 
-        public GroupJoinResponse(ResponseCode code, string groupId, FSharpOption<IPEndPoint> groupEndpoint)
+        public GroupJoinResponse(ResponseCode code, string groupId, string? groupIpEndpoint)
         {
             Code = code;
             GroupId = groupId;
-            GroupEndpoint = groupEndpoint;
+            GroupIpEndpoint = groupIpEndpoint;
         }
     }
 }
