@@ -1,6 +1,4 @@
 #nullable enable
-using System.Net;
-using Microsoft.FSharp.Core;
 
 namespace GroupChat.Client.Console
 {

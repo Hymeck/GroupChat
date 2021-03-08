@@ -64,7 +64,7 @@ namespace GroupChat.Client.Console
 
                     _peerceClient.SendMessage(text);
 
-                    _peerceClient.CheckGroupJoinRequests(RequestChoice)
+                    _peerceClient.ProcessGroupJoinRequests(RequestChoice)
                         .Wait();
                 }
             }, cts.Token).Wait();

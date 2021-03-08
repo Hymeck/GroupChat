@@ -3,13 +3,13 @@ using System;
 
 namespace GroupChat.Client.Console
 {
-    public sealed class GroupJoinDeniedException : Exception
+    public sealed class GroupJoinRejectedException : Exception
     {
-        public GroupJoinDeniedException() : base("Group join request was denied.")
+        public GroupJoinRejectedException() : base("Group join request was rejected.")
         {
         }
 
-        public GroupJoinDeniedException(string? message) : base(message)
+        public GroupJoinRejectedException(string? message) : base(message)
         {
         }
     }
